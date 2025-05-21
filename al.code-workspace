@@ -1,6 +1,9 @@
 {
   "folders": [
     {
+      "path": ".aiwork"
+    },
+    {
       "path": "app"
     },
     {
