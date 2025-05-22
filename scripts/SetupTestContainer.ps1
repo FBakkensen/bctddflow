@@ -254,6 +254,7 @@ $containerParams = @{
     includeTestToolkit = $IncludeTestToolkit
     includePerformanceToolkit = $IncludePerformanceToolkit
     assignPremiumPlan = $AssignPremiumPlan
+    enableTaskScheduler = $false  # Disable Task Scheduler to prevent test failures
 }
 
 # Add shared folders for test results

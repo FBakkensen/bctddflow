@@ -402,7 +402,8 @@ function Invoke-RunTests {
 
         # Use the host path directly for XUnitResultFileName
         if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
-            # Use the absolute path on the host
+            # The XUnitResultFileName parameter expects a path on the host machine
+            # BcContainerHelper will generate the XML file on the host after running tests
             $testParams['XUnitResultFileName'] = $ResultFile
 
             Write-InfoMessage "Results will be saved to: $ResultFile"

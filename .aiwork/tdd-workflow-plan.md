@@ -490,7 +490,7 @@ Create a PowerShell script named 'Run-Tests.ps1' in the scripts folder that:
 8. Applies test settings from the configuration (timeout, fail behavior)
 9. Supports running all tests or specific test codeunits
 10. Captures test results and formats them for easy reading
-11. Returns a strongly-typed [pscustomobject] with test results
+11. Returns a strongly-typed [pscustomobject] with test results50
 12. Returns appropriate exit code based on test success/failure
 Include parameter validation and help information.
 ```
