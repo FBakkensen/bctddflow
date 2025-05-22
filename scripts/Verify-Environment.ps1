@@ -10,6 +10,8 @@
 
     The script uses settings from the TDDConfig.psd1 file, including the container name and script behavior settings.
     If the configuration file cannot be loaded, default values are used.
+    
+    This script uses the centralized configuration management provided by Get-TDDConfiguration.ps1.
 .PARAMETER ConfigPath
     Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
 .EXAMPLE
@@ -25,8 +27,28 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ConfigPath = (Join-Path -Path $PSScriptRoot -ChildPath "TDDConfig.psd1")
+    [string]$ConfigPath
 )
+
+# Set default config path if not provided
+if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $scriptPath = $MyInvocation.MyCommand.Path
+    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+        # Fallback if $MyInvocation.MyCommand.Path is empty
+        $scriptPath = $PSCommandPath
+    }
+    
+    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+        # Hard-coded fallback if both are empty
+        $ConfigPath = "d:\repos\bctddflow\scripts\TDDConfig.psd1"
+        Write-Host "WARNING: Using hard-coded configuration path: $ConfigPath" -ForegroundColor Yellow
+    } else {
+        $scriptDir = Split-Path -Parent $scriptPath
+        $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+    }
+    
+    Write-Host "INFO: Using default configuration path: $ConfigPath" -ForegroundColor Cyan
+}
 
 # Fail fast on any terminating / non-terminating error
 $ErrorActionPreference = 'Stop'
@@ -37,49 +59,28 @@ $WarningPreference     = 'Continue'
 # Define the user module path for BcContainerHelper
 $userModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath "PowerShell\Modules\BcContainerHelper"
 
-# Function to import configuration from TDDConfig.psd1
-function Import-TDDConfiguration {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $false)]
-        [string]$ConfigPath
-    )
-
-    # Default configuration values
-    $defaultConfig = @{
-        ContainerName = "bctest"
-        ScriptSettings = @{
-            ErrorActionPreference = "Stop"
-            VerbosePreference = "Continue"
-            InformationPreference = "Continue"
-            WarningPreference = "Continue"
-        }
-    }
-
-    # Try to import configuration from file
-    try {
-        if (Test-Path -Path $ConfigPath) {
-            Write-Host "Loading configuration from $ConfigPath..." -ForegroundColor Cyan
-            $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
-
-            # Merge with default configuration (imported config takes precedence)
-            $config = $defaultConfig.Clone()
-            foreach ($key in $importedConfig.Keys) {
-                $config[$key] = $importedConfig[$key]
-            }
-
-            Write-Host "Configuration loaded successfully." -ForegroundColor Green
-            return $config
-        } else {
-            Write-Host "Configuration file not found at $ConfigPath. Using default values." -ForegroundColor Yellow
-            return $defaultConfig
-        }
-    } catch {
-        Write-Host "Error loading configuration from $ConfigPath`: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "Using default configuration values." -ForegroundColor Yellow
-        return $defaultConfig
-    }
+# Import the Get-TDDConfiguration script
+$scriptPath = $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+    # Fallback if $MyInvocation.MyCommand.Path is empty
+    $scriptPath = $PSCommandPath
 }
+
+if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+    # Hard-coded fallback if both are empty
+    $getTDDConfigPath = "d:\repos\bctddflow\scripts\Get-TDDConfiguration.ps1"
+    Write-Host "WARNING: Using hard-coded path for Get-TDDConfiguration.ps1: $getTDDConfigPath" -ForegroundColor Yellow
+} else {
+    $scriptDir = Split-Path -Parent $scriptPath
+    $getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+}
+
+if (-not (Test-Path -Path $getTDDConfigPath)) {
+    Write-Host "ERROR: Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" -ForegroundColor Red
+    Write-Host "Make sure the script exists in the same folder as Verify-Environment.ps1." -ForegroundColor Yellow
+    exit 1
+}
+. $getTDDConfigPath
 
 # Function to check if BcContainerHelper is available and import it if possible
 function Import-BcContainerHelperIfAvailable {
@@ -162,6 +163,7 @@ function Test-TDDEnvironment {
         Verifies the TDD environment for Business Central.
     .DESCRIPTION
         Checks if the required components for Business Central TDD workflow are installed and running.
+        Uses the centralized configuration management provided by Get-TDDConfiguration.ps1.
     .OUTPUTS
         System.Boolean. Returns $true if all checks pass, $false otherwise.
     #>
@@ -173,8 +175,19 @@ function Test-TDDEnvironment {
 
     $script:allChecksPass = $true
 
-    # Load configuration
-    $config = Import-TDDConfiguration -ConfigPath $ConfigPath
+    # Load configuration using the centralized Get-TDDConfiguration function
+    $params = @{}
+    if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
+        $params['ConfigPath'] = $ConfigPath
+    }
+    
+    $config = Get-TDDConfiguration @params
+    
+    # If configuration is null, exit with error
+    if ($null -eq $config) {
+        Write-Host "ERROR: Failed to load configuration. Please check the configuration file and try again." -ForegroundColor Red
+        return $false
+    }
 
     # Get container name from configuration
     $containerName = $config.ContainerName
@@ -256,7 +269,7 @@ function Test-TDDEnvironment {
                         }
 
                         # Pass the config path if it was provided
-                        if ($PSBoundParameters.ContainsKey('ConfigPath')) {
+                        if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
                             $initParams['ConfigPath'] = $ConfigPath
                         }
 
@@ -326,13 +339,19 @@ function Test-TDDEnvironment {
 }
 
 # Execute the verification
-$result = Test-TDDEnvironment -ConfigPath $ConfigPath
+try {
+    $result = Test-TDDEnvironment -ConfigPath $ConfigPath
 
-# Set the exit code for the script
-if (-not $result) {
-    # Exit with non-zero code to indicate failure when used in scripts
+    # Set the exit code for the script
+    if (-not $result) {
+        # Exit with non-zero code to indicate failure when used in scripts
+        exit 1
+    } else {
+        # Exit with zero code to indicate success
+        exit 0
+    }
+} catch {
+    Write-Host "ERROR: An unexpected error occurred during environment verification: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1
-} else {
-    # Exit with zero code to indicate success
-    exit 0
 }
