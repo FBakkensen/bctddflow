@@ -1,0 +1,7 @@
+# Ignore all files in the build directory
+*
+*/
+!.gitignore
+
+# This .gitignore file prevents compiled artifacts and temporary build files
+# from being committed to the repository.

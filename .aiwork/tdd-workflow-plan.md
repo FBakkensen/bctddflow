@@ -372,7 +372,7 @@ Create a PowerShell script template named 'Script-Template.ps1' in the scripts f
 - Task 4.4 (Create Common Functions Script)
 - Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
 
-### 5. [ ] Create App Source Preparation Script
+### 5. [x] Create App Source Preparation Script
 
 **Prompt:**
 ```
