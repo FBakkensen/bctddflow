@@ -227,7 +227,7 @@ Create a PowerShell script named 'Common-Functions.ps1' in the scripts folder th
 - Check that the functions work correctly
 - Test importing the script in other scripts
 
-### 4.5. [ ] Refactor Verify-Environment.ps1 to Use Common-Functions.ps1
+### 4.5. [x] Refactor Verify-Environment.ps1 to Use Common-Functions.ps1
 
 **Prompt:**
 ```

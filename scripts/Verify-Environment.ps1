@@ -10,8 +10,9 @@
 
     The script uses settings from the TDDConfig.psd1 file, including the container name and script behavior settings.
     If the configuration file cannot be loaded, default values are used.
-    
-    This script uses the centralized configuration management provided by Get-TDDConfiguration.ps1.
+
+    This script uses the centralized configuration management provided by Get-TDDConfiguration.ps1
+    and common utility functions from Common-Functions.ps1.
 .PARAMETER ConfigPath
     Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
 .EXAMPLE
@@ -30,36 +31,13 @@ param(
     [string]$ConfigPath
 )
 
-# Set default config path if not provided
-if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $scriptPath = $MyInvocation.MyCommand.Path
-    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-        # Fallback if $MyInvocation.MyCommand.Path is empty
-        $scriptPath = $PSCommandPath
-    }
-    
-    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-        # Hard-coded fallback if both are empty
-        $ConfigPath = "d:\repos\bctddflow\scripts\TDDConfig.psd1"
-        Write-Host "WARNING: Using hard-coded configuration path: $ConfigPath" -ForegroundColor Yellow
-    } else {
-        $scriptDir = Split-Path -Parent $scriptPath
-        $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
-    }
-    
-    Write-Host "INFO: Using default configuration path: $ConfigPath" -ForegroundColor Cyan
-}
-
 # Fail fast on any terminating / non-terminating error
 $ErrorActionPreference = 'Stop'
 $VerbosePreference     = 'Continue'
 $InformationPreference = 'Continue'
 $WarningPreference     = 'Continue'
 
-# Define the user module path for BcContainerHelper
-$userModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath "PowerShell\Modules\BcContainerHelper"
-
-# Import the Get-TDDConfiguration script
+# Get the script directory
 $scriptPath = $MyInvocation.MyCommand.Path
 if ([string]::IsNullOrWhiteSpace($scriptPath)) {
     # Fallback if $MyInvocation.MyCommand.Path is empty
@@ -68,93 +46,36 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 
 if ([string]::IsNullOrWhiteSpace($scriptPath)) {
     # Hard-coded fallback if both are empty
-    $getTDDConfigPath = "d:\repos\bctddflow\scripts\Get-TDDConfiguration.ps1"
-    Write-Host "WARNING: Using hard-coded path for Get-TDDConfiguration.ps1: $getTDDConfigPath" -ForegroundColor Yellow
+    $scriptDir = "d:\repos\bctddflow\scripts"
+    # We can't use Write-WarningMessage yet as Common-Functions.ps1 isn't loaded
+    Write-Warning "Using hard-coded script directory: $scriptDir"
 } else {
     $scriptDir = Split-Path -Parent $scriptPath
-    $getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
 }
 
+# Set default config path if not provided
+if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+    # We can't use Write-InfoMessage yet as Common-Functions.ps1 isn't loaded
+    Write-Verbose "Using default configuration path: $ConfigPath"
+}
+
+# Import Common-Functions.ps1
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+if (-not (Test-Path -Path $commonFunctionsPath)) {
+    # We can't use Write-ErrorMessage yet as Common-Functions.ps1 isn't loaded
+    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the same folder as Verify-Environment.ps1."
+    exit 1
+}
+. $commonFunctionsPath
+
+# Import the Get-TDDConfiguration script
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
 if (-not (Test-Path -Path $getTDDConfigPath)) {
-    Write-Host "ERROR: Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" -ForegroundColor Red
-    Write-Host "Make sure the script exists in the same folder as Verify-Environment.ps1." -ForegroundColor Yellow
+    Write-ErrorMessage "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" "Make sure the script exists in the same folder as Verify-Environment.ps1."
     exit 1
 }
 . $getTDDConfigPath
-
-# Function to check if BcContainerHelper is available and import it if possible
-function Import-BcContainerHelperIfAvailable {
-    [CmdletBinding()]
-    param()
-
-    # Check if module is already imported
-    if (Get-Module -Name BcContainerHelper) {
-        return $true
-    }
-
-    # Check if module is available in the user's module path
-    if (Test-Path -Path $userModulePath) {
-        try {
-            # Find the latest version folder
-            $latestVersion = Get-ChildItem -Path $userModulePath -Directory |
-                             Sort-Object -Property Name -Descending |
-                             Select-Object -First 1
-
-            if ($latestVersion) {
-                $modulePath = Join-Path -Path $latestVersion.FullName -ChildPath "BcContainerHelper.psd1"
-                if (Test-Path -Path $modulePath) {
-                    Import-Module $modulePath -Force
-                    return $true
-                }
-            }
-        }
-        catch {
-            Write-Host "Error importing BcContainerHelper from user module path: $_" -ForegroundColor Yellow
-        }
-    }
-
-    # Try to import from any available location
-    try {
-        Import-Module BcContainerHelper -ErrorAction SilentlyContinue
-        if (Get-Module -Name BcContainerHelper) {
-            return $true
-        }
-    }
-    catch {
-        # Module not available
-    }
-
-    return $false
-}
-
-# Function to display error messages with instructions
-function Write-ErrorWithInstructions {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$ErrorMessage,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Instructions
-    )
-
-    Write-Host "ERROR: $ErrorMessage" -ForegroundColor Red
-    Write-Host "INSTRUCTIONS: $Instructions" -ForegroundColor Yellow
-    # Don't return a value, just set the variable in the calling scope
-    $script:allChecksPass = $false
-}
-
-# Function to display success messages
-function Write-Success {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$Message
-    )
-
-    Write-Host "SUCCESS: $Message" -ForegroundColor Green
-    # No need to return anything
-}
 
 # Main verification function
 function Test-TDDEnvironment {
@@ -163,11 +84,13 @@ function Test-TDDEnvironment {
         Verifies the TDD environment for Business Central.
     .DESCRIPTION
         Checks if the required components for Business Central TDD workflow are installed and running.
-        Uses the centralized configuration management provided by Get-TDDConfiguration.ps1.
+        Uses the centralized configuration management provided by Get-TDDConfiguration.ps1
+        and common utility functions from Common-Functions.ps1.
     .OUTPUTS
         System.Boolean. Returns $true if all checks pass, $false otherwise.
     #>
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory = $false)]
         [string]$ConfigPath
@@ -180,12 +103,12 @@ function Test-TDDEnvironment {
     if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
         $params['ConfigPath'] = $ConfigPath
     }
-    
+
     $config = Get-TDDConfiguration @params
-    
+
     # If configuration is null, exit with error
     if ($null -eq $config) {
-        Write-Host "ERROR: Failed to load configuration. Please check the configuration file and try again." -ForegroundColor Red
+        Write-ErrorMessage "Failed to load configuration. Please check the configuration file and try again."
         return $false
     }
 
@@ -208,138 +131,139 @@ function Test-TDDEnvironment {
         }
     }
 
-    Write-Host "Verifying environment for Business Central TDD workflow..." -ForegroundColor Cyan
-    Write-Host "Using container name: $containerName (from configuration)" -ForegroundColor Cyan
+    Write-InfoMessage "Verifying environment for Business Central TDD workflow..."
+    Write-InfoMessage "Using container name: $containerName (from configuration)"
 
     # Check 1: Verify BcContainerHelper module is installed and try to import it
-    Write-Host "Checking if BcContainerHelper module is installed..." -ForegroundColor Cyan
+    Write-InfoMessage "Checking if BcContainerHelper module is installed..."
 
-    $bcContainerHelperAvailable = Import-BcContainerHelperIfAvailable
+    $bcContainerHelperAvailable = Import-BcContainerHelperModule
 
     if (-not $bcContainerHelperAvailable) {
-        Write-ErrorWithInstructions -ErrorMessage "BcContainerHelper module is not installed or cannot be imported." -Instructions "Install the module by running: Install-Module BcContainerHelper -Force"
+        Write-ErrorMessage "BcContainerHelper module is not installed or cannot be imported." "Install the module by running: Install-Module BcContainerHelper -Force"
+        $script:allChecksPass = $false
     } else {
         $bcContainerHelper = Get-Module -Name BcContainerHelper
-        Write-Success -Message "BcContainerHelper module is installed and imported (Version: $($bcContainerHelper.Version))"
+        Write-SuccessMessage "BcContainerHelper module is installed and imported (Version: $($bcContainerHelper.Version))"
     }
 
     # Check 2: Verify Docker is running
-    Write-Host "Checking if Docker is running..." -ForegroundColor Cyan
-    try {
-        docker info 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Docker command failed with exit code $LASTEXITCODE"
-        }
-        Write-Success -Message "Docker is running"
-    } catch {
-        Write-ErrorWithInstructions -ErrorMessage "Docker is not running or not installed." -Instructions "Make sure Docker Desktop is installed and running. If not installed, download it from https://www.docker.com/products/docker-desktop"
+    Write-InfoMessage "Checking if Docker is running..."
+
+    $dockerRunning = Test-DockerRunning
+
+    if (-not $dockerRunning) {
+        Write-ErrorMessage "Docker is not running or not installed." "Make sure Docker Desktop is installed and running. If not installed, download it from https://www.docker.com/products/docker-desktop"
+        $script:allChecksPass = $false
+    } else {
+        Write-SuccessMessage "Docker is running"
     }
 
     # Check 3: Verify container exists and is running
-    Write-Host "Checking if '$containerName' container exists and is running..." -ForegroundColor Cyan
-    try {
-        $containerExists = $false
-        $containerRunning = $false
+    Write-InfoMessage "Checking if '$containerName' container exists and is running..."
 
-        # Check if container exists using a safer approach
-        $containerList = docker ps -a --filter "name=$containerName" --format "{{.Names}}" 2>$null
-        $containerExists = $null -ne $containerList -and $containerList.Trim() -eq $containerName
+    $containerExists = Test-DockerContainerExists -ContainerName $containerName
+    $containerRunning = $false
 
-        if ($containerExists) {
-            # Check if container is running using structured output
-            $runningState = docker container inspect -f "{{.State.Running}}" $containerName 2>$null
-            $containerRunning = $null -ne $runningState -and $runningState.Trim() -eq "true"
-        }
+    if ($containerExists) {
+        $containerRunning = Test-DockerContainerRunning -ContainerName $containerName
+    }
 
-        if (-not $containerExists) {
-            Write-Host "The '$containerName' container does not exist. Attempting to create it..." -ForegroundColor Yellow
+    if (-not $containerExists) {
+        Write-WarningMessage "The '$containerName' container does not exist. Attempting to create it..."
 
-            # Check if BcContainerHelper is available
-            if ($bcContainerHelperAvailable) {
-                try {
-                    # Call the Initialize-TDDEnvironment.ps1 script to create the container
-                    $initScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "Initialize-TDDEnvironment.ps1"
+        # Check if BcContainerHelper is available
+        if ($bcContainerHelperAvailable) {
+            # Call the Initialize-TDDEnvironment.ps1 script to create the container
+            $initScriptPath = Join-Path -Path $scriptDir -ChildPath "Initialize-TDDEnvironment.ps1"
 
-                    if (Test-Path -Path $initScriptPath) {
-                        Write-Host "Calling Initialize-TDDEnvironment.ps1 to create the container..." -ForegroundColor Cyan
-                        # Call the script with parameters to prevent infinite recursion and pass the configuration
-                        $initParams = @{
-                            SkipVerification = $true
-                            ContainerName = $containerName
-                        }
+            if (Test-PathIsFile -Path $initScriptPath) {
+                Write-InfoMessage "Calling Initialize-TDDEnvironment.ps1 to create the container..."
 
-                        # Pass the config path if it was provided
-                        if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
-                            $initParams['ConfigPath'] = $ConfigPath
-                        }
-
-                        & $initScriptPath @initParams
-
-                        # Check if the container was created successfully
-                        $containerExists = $null -ne (docker ps -a --filter "name=$containerName" --format "{{.Names}}" 2>$null)
-                        $containerRunning = $containerExists -and ((docker container inspect -f "{{.State.Running}}" $containerName 2>$null).Trim() -eq "true")
-
-                        if ($containerExists -and $containerRunning) {
-                            Write-Success -Message "The '$containerName' container has been created and started successfully"
-                        } else {
-                            Write-ErrorWithInstructions -ErrorMessage "Failed to create the '$containerName' container." -Instructions "Check the output of Initialize-TDDEnvironment.ps1 for more information. You can also check the configuration in $ConfigPath."
-                        }
-                    } else {
-                        Write-ErrorWithInstructions -ErrorMessage "Initialize-TDDEnvironment.ps1 script not found at path: $initScriptPath" -Instructions "Make sure the script exists in the same folder as Verify-Environment.ps1."
-                    }
+                # Call the script with parameters to prevent infinite recursion and pass the configuration
+                $initParams = @{
+                    SkipVerification = $true
+                    ContainerName = $containerName
                 }
-                catch {
-                    Write-ErrorWithInstructions -ErrorMessage "Failed to create the '$containerName' container: $($_.Exception.Message)" -Instructions "Check the output of Initialize-TDDEnvironment.ps1 for more information. You can also check the configuration in $ConfigPath."
+
+                # Pass the config path if it was provided
+                if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
+                    $initParams['ConfigPath'] = $ConfigPath
+                }
+
+                $success = Invoke-ScriptWithErrorHandling -ScriptBlock {
+                    & $initScriptPath @initParams
+                } -ErrorMessage "Failed to execute Initialize-TDDEnvironment.ps1"
+
+                if ($success) {
+                    # Check if the container was created successfully
+                    $containerExists = Test-DockerContainerExists -ContainerName $containerName
+                    $containerRunning = $containerExists -and (Test-DockerContainerRunning -ContainerName $containerName)
+
+                    if ($containerExists -and $containerRunning) {
+                        Write-SuccessMessage "The '$containerName' container has been created and started successfully"
+                    } else {
+                        Write-ErrorMessage "Failed to create the '$containerName' container." "Check the output of Initialize-TDDEnvironment.ps1 for more information. You can also check the configuration in $ConfigPath."
+                        $script:allChecksPass = $false
+                    }
+                } else {
+                    $script:allChecksPass = $false
                 }
             } else {
-                Write-ErrorWithInstructions -ErrorMessage "BcContainerHelper module is required to create the container." -Instructions "Install the module by running: Install-Module BcContainerHelper -Force"
-            }
-        } elseif (-not $containerRunning) {
-            Write-Host "The '$containerName' container exists but is not running. Attempting to start it..." -ForegroundColor Yellow
-
-            try {
-                # Try to use Start-BcContainer from BcContainerHelper module first
-                if ($bcContainerHelperAvailable -and (Get-Command Start-BcContainer -ErrorAction SilentlyContinue)) {
-                    Write-Host "Using BcContainerHelper to start the container..." -ForegroundColor Cyan
-                    Start-BcContainer -containerName $containerName
-                }
-                # Fall back to docker CLI if BcContainerHelper is not available
-                else {
-                    Write-Host "BcContainerHelper not available, using docker CLI instead..." -ForegroundColor Cyan
-                    docker start $containerName | Out-Null
-                }
-
-                # Verify the container is now running
-                $containerRunning = (docker container inspect -f "{{.State.Running}}" $containerName 2>&1).Trim() -eq "true"
-
-                if ($containerRunning) {
-                    Write-Success -Message "The '$containerName' container has been started successfully"
-                } else {
-                    Write-ErrorWithInstructions -ErrorMessage "Failed to start the '$containerName' container." -Instructions "Check the Docker logs for more information: docker logs $containerName"
-                }
-            }
-            catch {
-                Write-ErrorWithInstructions -ErrorMessage "Failed to start the '$containerName' container: $($_.Exception.Message)" -Instructions "Check the Docker logs for more information: docker logs $containerName"
+                Write-ErrorMessage "Initialize-TDDEnvironment.ps1 script not found at path: $initScriptPath" "Make sure the script exists in the same folder as Verify-Environment.ps1."
+                $script:allChecksPass = $false
             }
         } else {
-            Write-Success -Message "The '$containerName' container exists and is running"
+            Write-ErrorMessage "BcContainerHelper module is required to create the container." "Install the module by running: Install-Module BcContainerHelper -Force"
+            $script:allChecksPass = $false
         }
-    } catch {
-        Write-ErrorWithInstructions -ErrorMessage "Failed to check container status: $($_.Exception.Message)" -Instructions "Make sure Docker is running and you have permission to execute Docker commands."
+    } elseif (-not $containerRunning) {
+        Write-WarningMessage "The '$containerName' container exists but is not running. Attempting to start it..."
+
+        $success = Invoke-ScriptWithErrorHandling -ScriptBlock {
+            # Try to use Start-BcContainer from BcContainerHelper module first
+            if ($bcContainerHelperAvailable -and (Test-BcContainerHelperCommandAvailable -CommandName "Start-BcContainer")) {
+                Write-InfoMessage "Using BcContainerHelper to start the container..."
+                Start-BcContainer -containerName $containerName
+            }
+            # Fall back to docker CLI if BcContainerHelper is not available
+            else {
+                Write-InfoMessage "BcContainerHelper not available, using docker CLI instead..."
+                docker start $containerName | Out-Null
+            }
+        } -ErrorMessage "Failed to start the '$containerName' container"
+
+        if ($success) {
+            # Verify the container is now running
+            $containerRunning = Test-DockerContainerRunning -ContainerName $containerName
+
+            if ($containerRunning) {
+                Write-SuccessMessage "The '$containerName' container has been started successfully"
+            } else {
+                Write-ErrorMessage "Failed to start the '$containerName' container." "Check the Docker logs for more information: docker logs $containerName"
+                $script:allChecksPass = $false
+            }
+        } else {
+            $script:allChecksPass = $false
+        }
+    } else {
+        Write-SuccessMessage "The '$containerName' container exists and is running"
     }
 
     # Final result
     if ($script:allChecksPass) {
-        Write-Host "`nAll environment checks passed! The environment is ready for Business Central TDD workflow." -ForegroundColor Green
+        Write-SectionHeader "Environment Verification Result" -ForegroundColor Green
+        Write-SuccessMessage "All environment checks passed! The environment is ready for Business Central TDD workflow."
         return $true
     } else {
-        Write-Host "`nEnvironment verification failed. Please address the issues above before proceeding." -ForegroundColor Red
+        Write-SectionHeader "Environment Verification Result" -ForegroundColor Red
+        Write-ErrorMessage "Environment verification failed. Please address the issues above before proceeding."
         return $false
     }
 }
 
 # Execute the verification
-try {
+$success = Invoke-ScriptWithErrorHandling -ScriptBlock {
     $result = Test-TDDEnvironment -ConfigPath $ConfigPath
 
     # Set the exit code for the script
@@ -350,8 +274,8 @@ try {
         # Exit with zero code to indicate success
         exit 0
     }
-} catch {
-    Write-Host "ERROR: An unexpected error occurred during environment verification: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor Red
+} -ErrorMessage "An unexpected error occurred during environment verification"
+
+if (-not $success) {
     exit 1
 }
