@@ -4,12 +4,16 @@
 .DESCRIPTION
     This script creates a new Business Central container with test toolkit and performance toolkit.
     It uses settings from the TDDConfig.psd1 file by default, but parameters can override these settings.
+    
+    The script uses the centralized configuration management through Get-TDDConfiguration.ps1
+    to load and validate configuration settings.
 .PARAMETER ContainerName
     The name of the Business Central container to create. Default is from configuration or 'bctest'.
 .PARAMETER ImageName
     The Business Central Docker image to use. If not provided, latest sandbox artifact will be used.
 .PARAMETER Auth
-    Authentication method for the container. Default is from configuration or 'UserPassword'.
+    Authentication method for the container. Default is from configuration or 'NavUserPassword'.
+    Valid values are "Windows", "UserPassword", and "NavUserPassword".
 .PARAMETER Password
     Password for the admin user as a SecureString. If not provided, a default password will be used. Ignored if Credential parameter is provided.
 .PARAMETER Credential
@@ -22,6 +26,7 @@
     Whether to accept outdated images. Default is from configuration or $true.
 .PARAMETER ConfigPath
     Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
+    This path is passed to Get-TDDConfiguration.ps1 for loading the configuration.
 .PARAMETER Country
     Country version for the Business Central container. Default is from configuration or 'w1'.
 .PARAMETER IncludeTestToolkit
@@ -32,15 +37,16 @@
     Whether to assign the premium plan. Default is from configuration or $true.
 .EXAMPLE
     .\SetupTestContainer.ps1
-    # Uses settings from the default configuration file
+    # Uses settings from the default configuration file loaded through Get-TDDConfiguration.ps1
 .EXAMPLE
     .\SetupTestContainer.ps1 -ContainerName "mytest" -Auth "Windows"
     # Overrides configuration settings with provided parameters
 .EXAMPLE
     .\SetupTestContainer.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
-    # Uses a custom configuration file
+    # Uses a custom configuration file through Get-TDDConfiguration.ps1
 .NOTES
     This script is part of the Business Central TDD workflow.
+    It uses the centralized configuration management through Get-TDDConfiguration.ps1.
 #>
 
 [CmdletBinding()]
@@ -108,52 +114,15 @@ function Write-SuccessMessage {
     Write-Host "SUCCESS: $Message" -ForegroundColor Green
 }
 
-# Function to import configuration from TDDConfig.psd1
-function Import-TDDConfiguration {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $false)]
-        [string]$ConfigPath
-    )
+# Import the Get-TDDConfiguration script
+$scriptPath = $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $scriptPath
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
 
-    # Default configuration values
-    $defaultConfig = @{
-        ContainerName = "bctest"
-        Auth = "UserPassword"
-        MemoryLimit = "8G"
-        Accept_Eula = $true
-        Accept_Outdated = $true
-        Country = "w1"
-        IncludeTestToolkit = $true
-        IncludePerformanceToolkit = $true
-        AssignPremiumPlan = $true
-        DNS = "8.8.8.8"
-        UpdateHosts = $true
-    }
-
-    # Try to import configuration from file
-    try {
-        if (Test-Path -Path $ConfigPath) {
-            Write-InfoMessage "Loading configuration from $ConfigPath..."
-            $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
-
-            # Merge with default configuration (imported config takes precedence)
-            $config = $defaultConfig.Clone()
-            foreach ($key in $importedConfig.Keys) {
-                $config[$key] = $importedConfig[$key]
-            }
-
-            Write-InfoMessage "Configuration loaded successfully."
-            return $config
-        } else {
-            Write-InfoMessage "Configuration file not found at $ConfigPath. Using default values."
-            return $defaultConfig
-        }
-    } catch {
-        Write-InfoMessage "Error loading configuration from $ConfigPath`: $($_.Exception.Message)"
-        Write-InfoMessage "Using default configuration values."
-        return $defaultConfig
-    }
+# Check if the Get-TDDConfiguration script exists
+if (-not (Test-Path -Path $getTDDConfigPath)) {
+    Write-Host "ERROR: Get-TDDConfiguration.ps1 script not found at $getTDDConfigPath" -ForegroundColor Red
+    exit 1
 }
 
 # Fail fast on any terminating / non-terminating error
@@ -161,8 +130,16 @@ $ErrorActionPreference = 'Stop'
 $VerbosePreference     = 'Continue'
 $InformationPreference = 'Continue'
 
-# Load configuration
-$config = Import-TDDConfiguration -ConfigPath $ConfigPath
+# Load configuration using Get-TDDConfiguration
+$config = & $getTDDConfigPath -ConfigPath $ConfigPath
+
+# Check if configuration was loaded successfully
+if ($null -eq $config) {
+    Write-Host "ERROR: Failed to load configuration. Please check the configuration file and try again." -ForegroundColor Red
+    exit 1
+}
+
+Write-InfoMessage "Configuration loaded successfully from Get-TDDConfiguration."
 
 # Apply configuration values if parameters are not explicitly provided
 if (-not $PSBoundParameters.ContainsKey('ContainerName')) {

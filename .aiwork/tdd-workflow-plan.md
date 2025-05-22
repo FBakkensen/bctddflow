@@ -190,7 +190,7 @@ Refactor the 'Initialize-TDDEnvironment.ps1' script in the scripts folder to:
 - Check that the script passes the ConfigPath parameter correctly
 - Confirm the script uses settings from the configuration
 
-### 4.3. [ ] Refactor SetupTestContainer.ps1 to Use Get-TDDConfiguration
+### 4.3. [x] Refactor SetupTestContainer.ps1 to Use Get-TDDConfiguration
 
 **Prompt:**
 ```
