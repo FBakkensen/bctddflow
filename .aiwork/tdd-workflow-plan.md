@@ -329,7 +329,7 @@ Refactor the 'Get-TDDConfiguration.ps1' script in the scripts folder to:
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
 
-### 4.9. [ ] Create Script Template Using Common-Functions.ps1
+### 4.9. [x] Create Script Template Using Common-Functions.ps1
 
 **Prompt:**
 ```
