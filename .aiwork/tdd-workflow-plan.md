@@ -305,7 +305,7 @@ Refactor the 'SetupTestContainer.ps1' script in the scripts folder to:
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
 
-### 4.8. [ ] Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1
+### 4.8. [x] Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1
 
 **Prompt:**
 ```

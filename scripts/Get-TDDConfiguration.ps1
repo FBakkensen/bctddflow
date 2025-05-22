@@ -5,6 +5,9 @@
     This script provides a function to load the TDDConfig.psd1 file, validate required settings,
     allow overriding settings via parameters, merge default settings with user-provided settings,
     and return a complete configuration object for use in other scripts.
+    
+    This script uses common utility functions from Common-Functions.ps1 for consistent functionality
+    across the TDD workflow scripts.
 .PARAMETER ConfigPath
     Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
 .PARAMETER OverrideSettings
@@ -53,16 +56,39 @@ $VerbosePreference     = 'Continue'
 $InformationPreference = 'Continue'
 $WarningPreference     = 'Continue'
 
-# Set default config path if not provided
-if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $scriptPath = $MyInvocation.MyCommand.Path
-    $scriptDir = Split-Path -Parent $scriptPath
-    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
-    Write-Host "INFO: Using default configuration path: $ConfigPath" -ForegroundColor Cyan
+# Get the script directory
+$scriptPath = $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+    # Fallback if $MyInvocation.MyCommand.Path is empty
+    $scriptPath = $PSCommandPath
 }
 
-# We'll use direct Write-Host calls instead of custom functions to avoid scope issues
+if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+    # Hard-coded fallback if both are empty
+    $scriptDir = "d:\repos\bctddflow\scripts"
+    Write-Warning "Using hard-coded script directory: $scriptDir"
+} else {
+    $scriptDir = Split-Path -Parent $scriptPath
+}
 
+# Import Common-Functions.ps1
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+if (-not (Test-Path -Path $commonFunctionsPath)) {
+    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the same folder as Get-TDDConfiguration.ps1."
+    exit 1
+}
+. $commonFunctionsPath
+
+# Set default config path if not provided
+if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+    Write-InfoMessage "Using default configuration path: $ConfigPath"
+    
+    # Update the PSBoundParameters to include the ConfigPath
+    $PSBoundParameters['ConfigPath'] = $ConfigPath
+}
+
+# Main function to get TDD configuration
 function Get-TDDConfiguration {
     <#
     .SYNOPSIS
@@ -70,6 +96,9 @@ function Get-TDDConfiguration {
     .DESCRIPTION
         Loads the TDDConfig.psd1 file, validates required settings, allows overriding settings,
         merges default settings with user-provided settings, and returns a complete configuration object.
+        
+        Uses common utility functions from Common-Functions.ps1 for consistent functionality
+        across the TDD workflow scripts.
     .PARAMETER ConfigPath
         Path to the configuration file.
     .PARAMETER OverrideSettings
@@ -83,6 +112,7 @@ function Get-TDDConfiguration {
         System.Boolean. Returns $true if ValidateOnly is specified and the configuration is valid, $false otherwise.
     #>
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable], [System.Boolean])]
     param(
         [Parameter(Mandatory = $false)]
         [string]$ConfigPath,
@@ -194,34 +224,34 @@ function Get-TDDConfiguration {
 
     # Try to import configuration from file
     try {
-        if (-not [string]::IsNullOrWhiteSpace($ConfigPath) -and (Test-Path -Path $ConfigPath)) {
-            Write-Host "INFO: Loading configuration from $ConfigPath..." -ForegroundColor Cyan
+        # Check if the configuration file exists
+        if (-not [string]::IsNullOrWhiteSpace($ConfigPath) -and (Test-Path -Path $ConfigPath -PathType Leaf)) {
+            Write-InfoMessage "Loading configuration from $ConfigPath..."
             $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
-
+            
             # Merge with default configuration (imported config takes precedence)
-            # This is a deep merge that handles nested hashtables
             $config = Merge-Hashtables -BaseTable $config -OverrideTable $importedConfig
-
-            Write-Host "INFO: Configuration loaded successfully." -ForegroundColor Cyan
+            
+            Write-InfoMessage "Configuration loaded successfully."
         } else {
-            Write-Host "WARNING: Configuration file not found at $ConfigPath. Using default values." -ForegroundColor Yellow
+            Write-WarningMessage "Configuration file not found at $ConfigPath. Using default values."
         }
     } catch {
-        Write-Host "WARNING: Error loading configuration from $ConfigPath`: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "WARNING: Using default configuration values." -ForegroundColor Yellow
+        Write-WarningMessage "Error loading configuration from $ConfigPath`: $($_.Exception.Message)"
+        Write-WarningMessage "Using default configuration values."
     }
 
     # Apply override settings if provided
     if ($OverrideSettings -and $OverrideSettings.Count -gt 0) {
-        Write-Host "INFO: Applying override settings..." -ForegroundColor Cyan
+        Write-InfoMessage "Applying override settings..."
         $config = Merge-Hashtables -BaseTable $config -OverrideTable $OverrideSettings
-        Write-Host "INFO: Override settings applied successfully." -ForegroundColor Cyan
+        Write-InfoMessage "Override settings applied successfully."
     }
 
     # Validate required settings if specified
     $validationPassed = $true
     if ($RequiredSettings -and $RequiredSettings.Count -gt 0) {
-        Write-Host "INFO: Validating required settings..." -ForegroundColor Cyan
+        Write-InfoMessage "Validating required settings..."
         $missingSettings = @()
 
         foreach ($key in $RequiredSettings) {
@@ -253,9 +283,9 @@ function Get-TDDConfiguration {
 
         if ($missingSettings.Count -gt 0) {
             $validationPassed = $false
-            Write-Host "ERROR: Missing required settings: $($missingSettings -join ', ')" -ForegroundColor Red
+            Write-ErrorMessage "Missing required settings: $($missingSettings -join ', ')"
         } else {
-            Write-Host "SUCCESS: All required settings are present." -ForegroundColor Green
+            Write-SuccessMessage "All required settings are present."
         }
     }
 
@@ -268,7 +298,7 @@ function Get-TDDConfiguration {
     if ($validationPassed) {
         return $config
     } else {
-        Write-Host "ERROR: Configuration validation failed. Please check the configuration file and required settings." -ForegroundColor Red
+        Write-ErrorMessage "Configuration validation failed. Please check the configuration file and required settings."
         return $null
     }
 }
@@ -288,6 +318,7 @@ function Merge-Hashtables {
         System.Collections.Hashtable. Returns the merged hashtable.
     #>
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory = $true)]
         [hashtable]$BaseTable,
@@ -325,7 +356,6 @@ if ($PSBoundParameters.ContainsKey('OverrideSettings')) { $params['OverrideSetti
 if ($PSBoundParameters.ContainsKey('RequiredSettings')) { $params['RequiredSettings'] = $RequiredSettings }
 if ($PSBoundParameters.ContainsKey('ValidateOnly')) { $params['ValidateOnly'] = $ValidateOnly }
 
+# Call the function and return the result
 $result = Get-TDDConfiguration @params
-
-# Return the result
 return $result
