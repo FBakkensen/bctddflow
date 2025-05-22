@@ -227,6 +227,134 @@ Create a PowerShell script named 'Common-Functions.ps1' in the scripts folder th
 - Check that the functions work correctly
 - Test importing the script in other scripts
 
+### 4.5. [ ] Refactor Verify-Environment.ps1 to Use Common-Functions.ps1
+
+**Prompt:**
+```
+Refactor the 'Verify-Environment.ps1' script in the scripts folder to:
+1. Dot-source the Common-Functions.ps1 script at the beginning
+2. Replace custom message functions with those from Common-Functions.ps1 (Write-InfoMessage, Write-SuccessMessage, Write-ErrorMessage, Write-WarningMessage)
+3. Replace the Import-BcContainerHelperIfAvailable function with Import-BcContainerHelperModule from Common-Functions.ps1
+4. Replace Docker status check functions with Test-DockerRunning, Test-DockerContainerExists, and Test-DockerContainerRunning from Common-Functions.ps1
+5. Use Invoke-ScriptWithErrorHandling for error-prone operations
+6. Update comments to reflect the use of Common-Functions.ps1
+7. Maintain the same functionality and error handling
+```
+
+**Verification:**
+- Run `.\scripts\Verify-Environment.ps1`
+- Script should work the same as before but use Common-Functions.ps1
+- Verify error handling still works correctly
+- Check that the script uses the common functions for message display and Docker operations
+- Confirm the script correctly imports BcContainerHelper using the common function
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+
+### 4.6. [ ] Refactor Initialize-TDDEnvironment.ps1 to Use Common-Functions.ps1
+
+**Prompt:**
+```
+Refactor the 'Initialize-TDDEnvironment.ps1' script in the scripts folder to:
+1. Dot-source the Common-Functions.ps1 script at the beginning
+2. Replace custom message functions with those from Common-Functions.ps1 (Write-InfoMessage, Write-SuccessMessage, Write-ErrorMessage, Write-WarningMessage)
+3. Replace the Import-BcContainerHelperIfAvailable function with Import-BcContainerHelperModule from Common-Functions.ps1
+4. Replace Docker status check code with Test-DockerRunning, Test-DockerContainerExists, and Test-DockerContainerRunning from Common-Functions.ps1
+5. Use Get-DockerContainerInfo for retrieving container information
+6. Use Invoke-ScriptWithErrorHandling for error-prone operations
+7. Use Resolve-TDDPath for path resolution
+8. Update comments to reflect the use of Common-Functions.ps1
+9. Maintain the same functionality and error handling
+```
+
+**Verification:**
+- Run `.\scripts\Initialize-TDDEnvironment.ps1`
+- Script should work the same as before but use Common-Functions.ps1
+- Verify error handling still works correctly
+- Check that the script uses the common functions for message display, Docker operations, and path resolution
+- Confirm the script correctly imports BcContainerHelper using the common function
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.5 (Refactor Verify-Environment.ps1 to Use Common-Functions.ps1)
+
+### 4.7. [ ] Refactor SetupTestContainer.ps1 to Use Common-Functions.ps1
+
+**Prompt:**
+```
+Refactor the 'SetupTestContainer.ps1' script in the scripts folder to:
+1. Dot-source the Common-Functions.ps1 script at the beginning
+2. Replace custom message functions with those from Common-Functions.ps1 (Write-InfoMessage, Write-SuccessMessage, Write-ErrorMessage, Write-WarningMessage)
+3. Replace the Import-BcContainerHelperIfAvailable function with Import-BcContainerHelperModule from Common-Functions.ps1
+4. Use Test-ValidCredential for credential validation
+5. Use Test-ValidContainerName for container name validation
+6. Use Test-ValidAuthMethod for authentication method validation
+7. Use Invoke-ScriptWithErrorHandling for error-prone operations
+8. Use Get-DockerContainerInfo for retrieving container information
+9. Update comments to reflect the use of Common-Functions.ps1
+10. Maintain the same functionality and error handling
+```
+
+**Verification:**
+- Run `.\scripts\SetupTestContainer.ps1`
+- Script should work the same as before but use Common-Functions.ps1
+- Verify error handling still works correctly
+- Check that the script uses the common functions for message display, validation, and Docker operations
+- Confirm the script correctly imports BcContainerHelper using the common function
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+
+### 4.8. [ ] Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1
+
+**Prompt:**
+```
+Refactor the 'Get-TDDConfiguration.ps1' script in the scripts folder to:
+1. Dot-source the Common-Functions.ps1 script at the beginning
+2. Replace any custom message functions with those from Common-Functions.ps1 (Write-InfoMessage, Write-SuccessMessage, Write-ErrorMessage, Write-WarningMessage)
+3. Use Resolve-TDDPath for path resolution
+4. Use Test-PathIsFile to check if the configuration file exists
+5. Use Invoke-ScriptWithErrorHandling for error-prone operations
+6. Update comments to reflect the use of Common-Functions.ps1
+7. Maintain the same functionality and error handling
+```
+
+**Verification:**
+- Run `.\scripts\Get-TDDConfiguration.ps1`
+- Script should work the same as before but use Common-Functions.ps1
+- Verify error handling still works correctly
+- Check that the script uses the common functions for message display, path resolution, and file operations
+- Confirm other scripts that use Get-TDDConfiguration.ps1 still work correctly
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+
+### 4.9. [ ] Create Script Template Using Common-Functions.ps1
+
+**Prompt:**
+```
+Create a PowerShell script template named 'Script-Template.ps1' in the scripts folder that:
+1. Includes standard script header with synopsis, description, parameters, examples, and notes
+2. Dot-sources the Common-Functions.ps1 script
+3. Sets up error handling preferences
+4. Loads configuration using Get-TDDConfiguration.ps1
+5. Includes a main function with proper error handling using Invoke-ScriptWithErrorHandling
+6. Includes parameter validation using common validation functions
+7. Uses common message functions for output
+8. Includes comments explaining how to use the template for new scripts
+9. Returns a strongly-typed PSCustomObject with results
+```
+
+**Verification:**
+- Review `.\scripts\Script-Template.ps1` for completeness
+- Verify the template includes all necessary components
+- Check that the template can be used as a starting point for new scripts
+- Test the template by creating a simple script based on it
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+
 ### 5. [ ] Create App Source Preparation Script
 
 **Prompt:**
@@ -251,6 +379,11 @@ Include parameter validation and help information.
 - Check output directory contains all necessary files
 - Verify successful output message
 - Confirm the script uses the centralized configuration management
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
 
 ### 6. [ ] Create App Compilation Script
 
@@ -277,6 +410,12 @@ Include parameter validation and help information.
 - Verify successful output message with app details
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 5 (Create App Source Preparation Script)
+
 ### 7. [ ] Create Test App Compilation Script
 
 **Prompt:**
@@ -302,6 +441,12 @@ Include parameter validation and help information.
 - Verify successful output message with app details
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 6 (Create App Compilation Script)
+
 ### 8. [ ] Create App Publishing Script
 
 **Prompt:**
@@ -324,6 +469,12 @@ Include parameter validation and help information.
 - Verify successful output message
 - Check app is published in container using BcContainerHelper
 - Confirm the script uses the centralized configuration management
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 6 (Create App Compilation Script)
 
 ### 9. [ ] Create Test App Publishing Script
 
@@ -348,6 +499,13 @@ Include parameter validation and help information.
 - Verify successful output message
 - Check test app is published in container using BcContainerHelper
 - Confirm the script uses the centralized configuration management
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 7 (Create Test App Compilation Script)
+- Task 8 (Create App Publishing Script)
 
 ### 10. [ ] Create Combined App Publishing Script
 
@@ -374,6 +532,13 @@ Include parameter validation and help information.
 - Verify appropriate output messages for each scenario
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 8 (Create App Publishing Script)
+- Task 9 (Create Test App Publishing Script)
+
 ## Test Execution
 
 ### 11. [ ] Create Test Runner Script
@@ -399,6 +564,13 @@ Include parameter validation and help information.
 - Check exit code is 0 for success and non-zero for failure
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 9 (Create Test App Publishing Script)
+- Task 10 (Create Combined App Publishing Script)
+
 ### 12. [ ] Create Test Results Viewer Script
 
 **Prompt:**
@@ -421,6 +593,12 @@ Include parameter validation and help information.
 - Verify results are displayed in a readable format
 - Check summary statistics are accurate
 - Confirm the script uses the centralized configuration management
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 11 (Create Test Runner Script)
 
 ## TDD Workflow Integration
 
@@ -458,6 +636,17 @@ Include detailed help information and usage examples.
 - Check feedback is clear and helpful
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 5 (Create App Source Preparation Script)
+- Task 6 (Create App Compilation Script)
+- Task 7 (Create Test App Compilation Script)
+- Task 10 (Create Combined App Publishing Script)
+- Task 11 (Create Test Runner Script)
+- Task 12 (Create Test Results Viewer Script)
+
 ### 14. [ ] Create Watch Mode Script
 
 **Prompt:**
@@ -488,6 +677,17 @@ Include parameter validation and help information.
 - Check results are displayed correctly
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 4.9 (Create Script Template Using Common-Functions.ps1)
+- Task 5 (Create App Source Preparation Script)
+- Task 6 (Create App Compilation Script)
+- Task 7 (Create Test App Compilation Script)
+- Task 10 (Create Combined App Publishing Script)
+- Task 11 (Create Test Runner Script)
+- Task 12 (Create Test Results Viewer Script)
+
 ## Documentation
 
 ### 15. [ ] Create Workflow Documentation
@@ -508,6 +708,11 @@ The documentation should be comprehensive but easy to follow.
 - Verify all scripts are documented with examples
 - Check troubleshooting section covers common issues
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
+- Task 5 through 14 (All script creation tasks)
+
 ### 16. [ ] Update README.md
 
 **Prompt:**
@@ -525,6 +730,9 @@ The updates should integrate well with the existing README content.
 - Verify TDD workflow section is added
 - Check links to documentation work correctly
 - Ensure quick start guide is clear and concise
+
+**Dependencies:**
+- Task 15 (Create Workflow Documentation)
 
 ## Testing and Refinement
 
@@ -544,6 +752,11 @@ The example should be simple but illustrative of the TDD process.
 - Follow the TDD workflow with the example
 - Verify tests fail initially and pass after implementation
 - Check documentation clearly explains the example
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
+- Task 5 through 14 (All script creation tasks)
 
 ### 18. [ ] Perform End-to-End Workflow Test
 
@@ -577,6 +790,12 @@ Perform an end-to-end test of the TDD workflow and document the results:
 - Document any issues or improvements needed
 - Make necessary script adjustments
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
+- Task 5 through 14 (All script creation tasks)
+- Task 17 (Create Example Test and Implementation)
+
 ### 19. [ ] Refine Scripts Based on Testing
 
 **Prompt:**
@@ -594,6 +813,12 @@ Refine the scripts based on the end-to-end testing:
 - Verify issues are resolved
 - Check documentation is updated
 - Perform another end-to-end test to confirm improvements
+
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
+- Task 5 through 14 (All script creation tasks)
+- Task 18 (Perform End-to-End Workflow Test)
 
 ## Final Integration
 
@@ -620,6 +845,12 @@ This should be a unified interface for the entire TDD workflow.
 - Check script can be used in a CI/CD context
 - Confirm the script uses the centralized configuration management
 
+**Dependencies:**
+- Task 4.4 (Create Common Functions Script)
+- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
+- Task 5 through 14 (All script creation tasks)
+- Task 19 (Refine Scripts Based on Testing)
+
 ### 21. [ ] Final Documentation Update
 
 **Prompt:**
@@ -639,3 +870,9 @@ Update all documentation to reflect the final state of the TDD workflow:
 - Check configuration guide explains all settings clearly
 - Test examples work as described
 - Ensure documentation is user-friendly and explains how to customize the workflow
+
+**Dependencies:**
+- Task 15 (Create Workflow Documentation)
+- Task 16 (Update README.md)
+- Task 19 (Refine Scripts Based on Testing)
+- Task 20 (Create Master Script)
