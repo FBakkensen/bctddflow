@@ -20,17 +20,23 @@ The script should provide clear error messages if any requirements are not met a
 - Script should output success message if all requirements are met
 - If requirements are not met, script should provide clear error messages with instructions
 
-### 2. [ ] Create Environment Setup Script
+### 2. [x] Create Environment Setup Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Initialize-TDDEnvironment.ps1' in the scripts folder that:
 1. Calls Verify-Environment.ps1 to ensure prerequisites are met
-2. If the 'bctest' container doesn't exist, creates it with appropriate settings
+2. If the 'bctest' container doesn't exist, creates it with appropriate settings by calling SetupTestContainer.ps1
 3. If the container exists but isn't running, starts it
 4. Sets up any necessary environment variables for the TDD workflow
 Include detailed comments explaining each step and any parameters that can be customized.
 ```
+
+**Implementation Notes:**
+- Enhance SetupTestContainer.ps1 to accept parameters for container name, image, auth, etc.
+- Modify Initialize-TDDEnvironment.ps1 to call SetupTestContainer.ps1 for container creation
+- Remove license file parameter as it's no longer needed for BC container creation
+- Add proper handling of container information returned by SetupTestContainer.ps1
 
 **Verification:**
 - Run `.\scripts\Initialize-TDDEnvironment.ps1`

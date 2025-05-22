@@ -16,9 +16,59 @@
 [CmdletBinding()]
 param()
 
-$ErrorActionPreference = "Stop"
-$WarningPreference = "Continue"
-$VerbosePreference = "Continue"
+# Fail fast on any terminating / non-terminating error
+$ErrorActionPreference = 'Stop'
+$VerbosePreference     = 'Continue'
+$InformationPreference = 'Continue'
+$WarningPreference     = 'Continue'
+
+# Define the user module path for BcContainerHelper
+$userModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath "PowerShell\Modules\BcContainerHelper"
+
+# Function to check if BcContainerHelper is available and import it if possible
+function Import-BcContainerHelperIfAvailable {
+    [CmdletBinding()]
+    param()
+    
+    # Check if module is already imported
+    if (Get-Module -Name BcContainerHelper) {
+        return $true
+    }
+    
+    # Check if module is available in the user's module path
+    if (Test-Path -Path $userModulePath) {
+        try {
+            # Find the latest version folder
+            $latestVersion = Get-ChildItem -Path $userModulePath -Directory | 
+                             Sort-Object -Property Name -Descending | 
+                             Select-Object -First 1
+            
+            if ($latestVersion) {
+                $modulePath = Join-Path -Path $latestVersion.FullName -ChildPath "BcContainerHelper.psd1"
+                if (Test-Path -Path $modulePath) {
+                    Import-Module $modulePath -Force
+                    return $true
+                }
+            }
+        }
+        catch {
+            Write-Host "Error importing BcContainerHelper from user module path: $_" -ForegroundColor Yellow
+        }
+    }
+    
+    # Try to import from any available location
+    try {
+        Import-Module BcContainerHelper -ErrorAction SilentlyContinue
+        if (Get-Module -Name BcContainerHelper) {
+            return $true
+        }
+    }
+    catch {
+        # Module not available
+    }
+    
+    return $false
+}
 
 # Function to display error messages with instructions
 function Write-ErrorWithInstructions {
@@ -63,14 +113,16 @@ function Test-TDDEnvironment {
 
     Write-Host "Verifying environment for Business Central TDD workflow..." -ForegroundColor Cyan
 
-    # Check 1: Verify BcContainerHelper module is installed
+    # Check 1: Verify BcContainerHelper module is installed and try to import it
     Write-Host "Checking if BcContainerHelper module is installed..." -ForegroundColor Cyan
-    $bcContainerHelper = Get-Module -Name BcContainerHelper -ListAvailable
-
-    if (-not $bcContainerHelper) {
-        Write-ErrorWithInstructions -ErrorMessage "BcContainerHelper module is not installed." -Instructions "Install the module by running: Install-Module BcContainerHelper -Force"
+    
+    $bcContainerHelperAvailable = Import-BcContainerHelperIfAvailable
+    
+    if (-not $bcContainerHelperAvailable) {
+        Write-ErrorWithInstructions -ErrorMessage "BcContainerHelper module is not installed or cannot be imported." -Instructions "Install the module by running: Install-Module BcContainerHelper -Force"
     } else {
-        Write-Success -Message "BcContainerHelper module is installed (Version: $($bcContainerHelper.Version))"
+        $bcContainerHelper = Get-Module -Name BcContainerHelper
+        Write-Success -Message "BcContainerHelper module is installed and imported (Version: $($bcContainerHelper.Version))"
     }
 
     # Check 2: Verify Docker is running
@@ -91,18 +143,76 @@ function Test-TDDEnvironment {
         $containerExists = $false
         $containerRunning = $false
 
-        # Check if container exists
-        docker container inspect bctest 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            $containerExists = $true
+        # Check if container exists using a safer approach
+        $containerList = docker ps -a --filter "name=bctest" --format "{{.Names}}" 2>$null
+        $containerExists = $null -ne $containerList -and $containerList.Trim() -eq "bctest"
+        
+        if ($containerExists) {
             # Check if container is running using structured output
-            $containerRunning = (docker container inspect -f "{{.State.Running}}" bctest 2>&1).Trim() -eq "true"
+            $runningState = docker container inspect -f "{{.State.Running}}" bctest 2>$null
+            $containerRunning = $null -ne $runningState -and $runningState.Trim() -eq "true"
         }
 
         if (-not $containerExists) {
-            Write-ErrorWithInstructions -ErrorMessage "The 'bctest' container does not exist." -Instructions "Create the container using BcContainerHelper. This will be handled by the Initialize-TDDEnvironment.ps1 script."
+            Write-Host "The 'bctest' container does not exist. Attempting to create it..." -ForegroundColor Yellow
+            
+            # Check if BcContainerHelper is available
+            if ($bcContainerHelperAvailable) {
+                try {
+                    # Call the Initialize-TDDEnvironment.ps1 script to create the container
+                    $initScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "Initialize-TDDEnvironment.ps1"
+                    
+                    if (Test-Path -Path $initScriptPath) {
+                        Write-Host "Calling Initialize-TDDEnvironment.ps1 to create the container..." -ForegroundColor Cyan
+                        # Call the script with a parameter to prevent infinite recursion
+                        & $initScriptPath -SkipVerification $true
+                        
+                        # Check if the container was created successfully
+                        $containerExists = $null -ne (docker ps -a --filter "name=bctest" --format "{{.Names}}" 2>$null)
+                        $containerRunning = $containerExists -and ((docker container inspect -f "{{.State.Running}}" bctest 2>$null).Trim() -eq "true")
+                        
+                        if ($containerExists -and $containerRunning) {
+                            Write-Success -Message "The 'bctest' container has been created and started successfully"
+                        } else {
+                            Write-ErrorWithInstructions -ErrorMessage "Failed to create the 'bctest' container." -Instructions "Check the output of Initialize-TDDEnvironment.ps1 for more information."
+                        }
+                    } else {
+                        Write-ErrorWithInstructions -ErrorMessage "Initialize-TDDEnvironment.ps1 script not found at path: $initScriptPath" -Instructions "Make sure the script exists in the same folder as Verify-Environment.ps1."
+                    }
+                }
+                catch {
+                    Write-ErrorWithInstructions -ErrorMessage "Failed to create the 'bctest' container: $_" -Instructions "Check the output of Initialize-TDDEnvironment.ps1 for more information."
+                }
+            } else {
+                Write-ErrorWithInstructions -ErrorMessage "BcContainerHelper module is required to create the container." -Instructions "Install the module by running: Install-Module BcContainerHelper -Force"
+            }
         } elseif (-not $containerRunning) {
-            Write-ErrorWithInstructions -ErrorMessage "The 'bctest' container exists but is not running." -Instructions "Start the container using: docker start bctest"
+            Write-Host "The 'bctest' container exists but is not running. Attempting to start it..." -ForegroundColor Yellow
+            
+            try {
+                # Try to use Start-BcContainer from BcContainerHelper module first
+                if ($bcContainerHelperAvailable -and (Get-Command Start-BcContainer -ErrorAction SilentlyContinue)) {
+                    Write-Host "Using BcContainerHelper to start the container..." -ForegroundColor Cyan
+                    Start-BcContainer -containerName bctest
+                }
+                # Fall back to docker CLI if BcContainerHelper is not available
+                else {
+                    Write-Host "BcContainerHelper not available, using docker CLI instead..." -ForegroundColor Cyan
+                    docker start bctest | Out-Null
+                }
+                
+                # Verify the container is now running
+                $containerRunning = (docker container inspect -f "{{.State.Running}}" bctest 2>&1).Trim() -eq "true"
+                
+                if ($containerRunning) {
+                    Write-Success -Message "The 'bctest' container has been started successfully"
+                } else {
+                    Write-ErrorWithInstructions -ErrorMessage "Failed to start the 'bctest' container." -Instructions "Check the Docker logs for more information: docker logs bctest"
+                }
+            }
+            catch {
+                Write-ErrorWithInstructions -ErrorMessage "Failed to start the 'bctest' container: $_" -Instructions "Check the Docker logs for more information: docker logs bctest"
+            }
         } else {
             Write-Success -Message "The 'bctest' container exists and is running"
         }
