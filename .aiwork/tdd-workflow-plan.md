@@ -440,7 +440,7 @@ Include parameter validation and help information.
 - Task 4.9 (Create Script Template Using Common-Functions.ps1)
 - Task 5 (Create App Source Preparation Script)
 
-### 7. [ ] Create App Deployment Script
+### 7. [x] Create App Deployment Script
 
 **Prompt:**
 ```
