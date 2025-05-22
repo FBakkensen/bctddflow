@@ -171,7 +171,7 @@ Refactor the 'Verify-Environment.ps1' script in the scripts folder to:
 - Check that the script passes the ConfigPath parameter correctly
 - Confirm the script uses the container name from the configuration
 
-### 4.2. [ ] Refactor Initialize-TDDEnvironment.ps1 to Use Get-TDDConfiguration
+### 4.2. [x] Refactor Initialize-TDDEnvironment.ps1 to Use Get-TDDConfiguration
 
 **Prompt:**
 ```
