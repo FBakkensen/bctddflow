@@ -3,26 +3,42 @@
     Sets up a Business Central test container.
 .DESCRIPTION
     This script creates a new Business Central container with test toolkit and performance toolkit.
+    It uses settings from the TDDConfig.psd1 file by default, but parameters can override these settings.
 .PARAMETER ContainerName
-    The name of the Business Central container to create. Default is 'bctest'.
+    The name of the Business Central container to create. Default is from configuration or 'bctest'.
 .PARAMETER ImageName
     The Business Central Docker image to use. If not provided, latest sandbox artifact will be used.
 .PARAMETER Auth
-    Authentication method for the container. Default is 'UserPassword'.
+    Authentication method for the container. Default is from configuration or 'UserPassword'.
 .PARAMETER Password
     Password for the admin user as a SecureString. If not provided, a default password will be used. Ignored if Credential parameter is provided.
 .PARAMETER Credential
     PSCredential object for the container admin user. If provided, this takes precedence over the Password parameter.
 .PARAMETER MemoryLimit
-    Memory limit for the container. Default is '8G'.
+    Memory limit for the container. Default is from configuration or '8G'.
 .PARAMETER Accept_Eula
-    Whether to accept the EULA. Default is $true.
+    Whether to accept the EULA. Default is from configuration or $true.
 .PARAMETER Accept_Outdated
-    Whether to accept outdated images. Default is $true.
+    Whether to accept outdated images. Default is from configuration or $true.
+.PARAMETER ConfigPath
+    Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
+.PARAMETER Country
+    Country version for the Business Central container. Default is from configuration or 'w1'.
+.PARAMETER IncludeTestToolkit
+    Whether to include the test toolkit. Default is from configuration or $true.
+.PARAMETER IncludePerformanceToolkit
+    Whether to include the performance toolkit. Default is from configuration or $true.
+.PARAMETER AssignPremiumPlan
+    Whether to assign the premium plan. Default is from configuration or $true.
 .EXAMPLE
     .\SetupTestContainer.ps1
+    # Uses settings from the default configuration file
 .EXAMPLE
     .\SetupTestContainer.ps1 -ContainerName "mytest" -Auth "Windows"
+    # Overrides configuration settings with provided parameters
+.EXAMPLE
+    .\SetupTestContainer.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
+    # Uses a custom configuration file
 .NOTES
     This script is part of the Business Central TDD workflow.
 #>
@@ -30,14 +46,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ContainerName = "bctest",
+    [string]$ContainerName,
 
     [Parameter(Mandatory = $false)]
-    [string]$ImageName = "",
+    [string]$ImageName,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("Windows", "UserPassword", "NavUserPassword")]
-    [string]$Auth = "UserPassword",
+    [string]$Auth,
 
     [Parameter(Mandatory = $false)]
     [System.Security.SecureString]$Password,
@@ -46,13 +62,28 @@ param(
     [System.Management.Automation.PSCredential]$Credential,
 
     [Parameter(Mandatory = $false)]
-    [string]$MemoryLimit = "8G",
+    [string]$MemoryLimit,
 
     [Parameter(Mandatory = $false)]
-    [bool]$Accept_Eula = $true,
+    [bool]$Accept_Eula,
 
     [Parameter(Mandatory = $false)]
-    [bool]$Accept_Outdated = $true
+    [bool]$Accept_Outdated,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ConfigPath = (Join-Path -Path $PSScriptRoot -ChildPath "TDDConfig.psd1"),
+
+    [Parameter(Mandatory = $false)]
+    [string]$Country,
+
+    [Parameter(Mandatory = $false)]
+    [bool]$IncludeTestToolkit,
+
+    [Parameter(Mandatory = $false)]
+    [bool]$IncludePerformanceToolkit,
+
+    [Parameter(Mandatory = $false)]
+    [bool]$AssignPremiumPlan
 )
 
 # Function to display info messages
@@ -77,10 +108,98 @@ function Write-SuccessMessage {
     Write-Host "SUCCESS: $Message" -ForegroundColor Green
 }
 
+# Function to import configuration from TDDConfig.psd1
+function Import-TDDConfiguration {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$ConfigPath
+    )
+
+    # Default configuration values
+    $defaultConfig = @{
+        ContainerName = "bctest"
+        Auth = "UserPassword"
+        MemoryLimit = "8G"
+        Accept_Eula = $true
+        Accept_Outdated = $true
+        Country = "w1"
+        IncludeTestToolkit = $true
+        IncludePerformanceToolkit = $true
+        AssignPremiumPlan = $true
+        DNS = "8.8.8.8"
+        UpdateHosts = $true
+    }
+
+    # Try to import configuration from file
+    try {
+        if (Test-Path -Path $ConfigPath) {
+            Write-InfoMessage "Loading configuration from $ConfigPath..."
+            $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
+
+            # Merge with default configuration (imported config takes precedence)
+            $config = $defaultConfig.Clone()
+            foreach ($key in $importedConfig.Keys) {
+                $config[$key] = $importedConfig[$key]
+            }
+
+            Write-InfoMessage "Configuration loaded successfully."
+            return $config
+        } else {
+            Write-InfoMessage "Configuration file not found at $ConfigPath. Using default values."
+            return $defaultConfig
+        }
+    } catch {
+        Write-InfoMessage "Error loading configuration from $ConfigPath`: $($_.Exception.Message)"
+        Write-InfoMessage "Using default configuration values."
+        return $defaultConfig
+    }
+}
+
 # Fail fast on any terminating / non-terminating error
 $ErrorActionPreference = 'Stop'
 $VerbosePreference     = 'Continue'
 $InformationPreference = 'Continue'
+
+# Load configuration
+$config = Import-TDDConfiguration -ConfigPath $ConfigPath
+
+# Apply configuration values if parameters are not explicitly provided
+if (-not $PSBoundParameters.ContainsKey('ContainerName')) {
+    $ContainerName = $config.ContainerName
+}
+
+if (-not $PSBoundParameters.ContainsKey('Auth')) {
+    $Auth = $config.Auth
+}
+
+if (-not $PSBoundParameters.ContainsKey('MemoryLimit')) {
+    $MemoryLimit = $config.MemoryLimit
+}
+
+if (-not $PSBoundParameters.ContainsKey('Accept_Eula')) {
+    $Accept_Eula = $config.Accept_Eula
+}
+
+if (-not $PSBoundParameters.ContainsKey('Accept_Outdated')) {
+    $Accept_Outdated = $config.Accept_Outdated
+}
+
+if (-not $PSBoundParameters.ContainsKey('Country')) {
+    $Country = $config.Country
+}
+
+if (-not $PSBoundParameters.ContainsKey('IncludeTestToolkit')) {
+    $IncludeTestToolkit = $config.IncludeTestToolkit
+}
+
+if (-not $PSBoundParameters.ContainsKey('IncludePerformanceToolkit')) {
+    $IncludePerformanceToolkit = $config.IncludePerformanceToolkit
+}
+
+if (-not $PSBoundParameters.ContainsKey('AssignPremiumPlan')) {
+    $AssignPremiumPlan = $config.AssignPremiumPlan
+}
 
 # Define the user module path for BcContainerHelper
 $userModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath "PowerShell\Modules\BcContainerHelper"
@@ -89,20 +208,20 @@ $userModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) 
 function Import-BcContainerHelperIfAvailable {
     [CmdletBinding()]
     param()
-    
+
     # Check if module is already imported
     if (Get-Module -Name BcContainerHelper) {
         return $true
     }
-    
+
     # Check if module is available in the user's module path
     if (Test-Path -Path $userModulePath) {
         try {
             # Find the latest version folder
-            $latestVersion = Get-ChildItem -Path $userModulePath -Directory | 
-                             Sort-Object -Property Name -Descending | 
+            $latestVersion = Get-ChildItem -Path $userModulePath -Directory |
+                             Sort-Object -Property Name -Descending |
                              Select-Object -First 1
-            
+
             if ($latestVersion) {
                 $modulePath = Join-Path -Path $latestVersion.FullName -ChildPath "BcContainerHelper.psd1"
                 if (Test-Path -Path $modulePath) {
@@ -115,7 +234,7 @@ function Import-BcContainerHelperIfAvailable {
             Write-Host "Error importing BcContainerHelper from user module path: $_" -ForegroundColor Yellow
         }
     }
-    
+
     # Try to import from any available location
     try {
         Import-Module BcContainerHelper -ErrorAction SilentlyContinue
@@ -126,7 +245,7 @@ function Import-BcContainerHelperIfAvailable {
     catch {
         # Module not available
     }
-    
+
     return $false
 }
 
@@ -158,30 +277,62 @@ else {
     Write-InfoMessage "Using default credentials (admin/P@ssw0rd)."
 }
 
-# Always use artifact URL instead of image name to avoid warnings about outdated Docker images
-Write-InfoMessage "Getting latest sandbox artifact..."
-$artifactUrl = Get-BcArtifactUrl -type 'Sandbox' -country 'w1' -select 'Latest'
+# Use artifact URL from configuration or get latest sandbox artifact
+$artifactUrl = ""
+if (-not [string]::IsNullOrEmpty($config.ArtifactUrl)) {
+    $artifactUrl = $config.ArtifactUrl
+    Write-InfoMessage "Using artifact URL from configuration: $artifactUrl"
+} else {
+    Write-InfoMessage "Getting latest sandbox artifact..."
+    $artifactUrl = Get-BcArtifactUrl -type 'Sandbox' -country $Country -select 'Latest'
+    Write-InfoMessage "Using latest sandbox artifact: $artifactUrl"
+}
 
 try {
-    # Create the container following the exact pattern provided
+    # Create the container using configuration settings
     Write-InfoMessage "Creating container using artifact URL..."
-    
-    New-BcContainer `
-        -accept_eula `
-        -containerName $ContainerName `
-        -credential $credential `
-        -auth $Auth `
-        -artifactUrl $artifactUrl `
-        -includeTestToolkit `
-        -includePerformanceToolkit `
-        -assignPremiumPlan `
-        -dns '8.8.8.8' `
-        -updateHosts
-    
+
+    # Build parameter hashtable for New-BcContainer
+    $containerParams = @{
+        accept_eula = $Accept_Eula
+        containerName = $ContainerName
+        credential = $credential
+        auth = $Auth
+        artifactUrl = $artifactUrl
+        includeTestToolkit = $IncludeTestToolkit
+        includePerformanceToolkit = $IncludePerformanceToolkit
+        assignPremiumPlan = $AssignPremiumPlan
+    }
+
+    # Add DNS if specified in configuration
+    if ($config.DNS) {
+        $containerParams['dns'] = $config.DNS
+    }
+
+    # Add UpdateHosts if specified in configuration
+    if ($config.UpdateHosts) {
+        $containerParams['updateHosts'] = $config.UpdateHosts
+    }
+
+    # Add memory limit if specified
+    if (-not [string]::IsNullOrEmpty($MemoryLimit)) {
+        $containerParams['memoryLimit'] = $MemoryLimit
+    }
+
+    # Create the container with all parameters
+    Write-InfoMessage "Creating container with the following settings:"
+    Write-InfoMessage "  Container Name: $ContainerName"
+    Write-InfoMessage "  Auth Method: $Auth"
+    Write-InfoMessage "  Include Test Toolkit: $IncludeTestToolkit"
+    Write-InfoMessage "  Include Performance Toolkit: $IncludePerformanceToolkit"
+    Write-InfoMessage "  Assign Premium Plan: $AssignPremiumPlan"
+
+    New-BcContainer @containerParams
+
     # Setup test users
     Write-InfoMessage "Setting up test users..."
     Setup-BcContainerTestUsers -containerName $ContainerName -Password $credential.Password -credential $credential
-    
+
     Write-SuccessMessage "Container '$ContainerName' setup completed successfully."
 }
 catch {
@@ -196,13 +347,30 @@ $containerIP = $containerInfo.NetworkSettings.Networks.nat.IPAddress
 
 # Return object with container details as a strongly-typed PSCustomObject for better tab-completion and type safety
 $result = [PSCustomObject]@{
-    ContainerName    = $ContainerName
-    IPAddress        = $containerIP
-    Auth             = $Auth
-    WebClientUrl     = "http://$containerIP/BC"
-    SOAPServicesUrl  = "http://$containerIP/BC/WS"
-    ODataServicesUrl = "http://$containerIP/BC/ODataV4"
+    ContainerName           = $ContainerName
+    IPAddress               = $containerIP
+    Auth                    = $Auth
+    ArtifactUrl             = $artifactUrl
+    Country                 = $Country
+    IncludeTestToolkit      = $IncludeTestToolkit
+    IncludePerformanceToolkit = $IncludePerformanceToolkit
+    AssignPremiumPlan       = $AssignPremiumPlan
+    MemoryLimit             = $MemoryLimit
+    WebClientUrl            = "http://$containerIP/BC"
+    SOAPServicesUrl         = "http://$containerIP/BC/WS"
+    ODataServicesUrl        = "http://$containerIP/BC/ODataV4"
+    ConfigPath              = $ConfigPath
+    ConfigUsed              = (Test-Path -Path $ConfigPath)
 }
+
+# Output configuration information
+Write-InfoMessage "Container created with the following configuration:"
+Write-InfoMessage "  Configuration File: $ConfigPath (Used: $((Test-Path -Path $ConfigPath)))"
+Write-InfoMessage "  Container Name: $ContainerName"
+Write-InfoMessage "  Auth Method: $Auth"
+Write-InfoMessage "  Country: $Country"
+Write-InfoMessage "  Include Test Toolkit: $IncludeTestToolkit"
+Write-InfoMessage "  Include Performance Toolkit: $IncludePerformanceToolkit"
 
 # Return the result and exit with success code
 return $result

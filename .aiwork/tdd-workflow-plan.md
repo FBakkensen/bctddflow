@@ -88,7 +88,7 @@ Modify the 'Verify-Environment.ps1' script in the scripts folder to:
 - Check that the script works even if the configuration file is missing (using defaults)
 - Confirm the script correctly uses the container name from configuration
 
-### 3.2. [ ] Update SetupTestContainer Script to Use Configuration
+### 3.2. [x] Update SetupTestContainer Script to Use Configuration
 
 **Prompt:**
 ```
