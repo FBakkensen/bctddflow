@@ -2,35 +2,77 @@ codeunit 50000 "HelloWorld Test"
 {
     Subtype = Test;
 
+    // Local variables
+    var
+        TestLibrary: Codeunit "Test Library";
+        TestSetup: Codeunit "Test Setup";
+        MessageDisplayed: Boolean;
+
+    // Test initialization
+    [Test]
+    procedure TestInitialize()
+    begin
+        // Initialize test environment
+        TestSetup.Initialize();
+    end;
+
+    // Test that the hello world message is displayed
     [Test]
     [HandlerFunctions('HelloWorldMessageHandler')]
+    [TestPermissions(TestPermissions::Disabled)]
     procedure TestHelloWorldMessage()
     var
         CustList: TestPage "Customer List";
     begin
+        // [GIVEN] A clean test environment
+        Initialize();
+
+        // [WHEN] Opening the Customer List page
         CustList.OpenView();
         CustList.Close();
-        if (not MessageDisplayed) then
-            ERROR('Message was not displayed!');
+
+        // [THEN] The hello world message should be displayed
+        TestLibrary.AssertTrue(MessageDisplayed, 'Message was not displayed!');
     end;
 
+    // Test that an error is thrown when the message is not displayed
     [Test]
+    [TestPermissions(TestPermissions::Disabled)]
     procedure TestHelloWorldMessageError()
     var
         CustList: TestPage "Customer List";
     begin
+        // [GIVEN] A clean test environment
+        Initialize();
+
+        // [WHEN] Opening the Customer List page
+        // Note: This test is expected to fail as it doesn't use the message handler
         CustList.OpenView();
         CustList.Close();
-        ERROR('Message was not displayed!');
+
+        // [THEN] An error should be thrown
+        if MessageDisplayed then
+            TestLibrary.Fail('Message should not be displayed in this test!');
+
+        // This line will cause the test to fail, which is the expected behavior
+        TestLibrary.AssertTrue(false, 'Message was not displayed!');
     end;
 
+    // Message handler for the hello world message
     [MessageHandler]
     procedure HelloWorldMessageHandler(Message: Text[1024])
     begin
         MessageDisplayed := MessageDisplayed or (Message = 'App published: Hello world');
     end;
 
-    var
-        MessageDisplayed: Boolean;
+    // Initialize test
+    local procedure Initialize()
+    begin
+        // Reset message displayed flag
+        MessageDisplayed := false;
+
+        // Initialize test setup
+        TestSetup.Initialize();
+    end;
 }
 

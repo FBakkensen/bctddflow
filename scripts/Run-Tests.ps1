@@ -412,6 +412,19 @@ function Invoke-RunTests {
             # BcContainerHelper will generate the XML file on the host after running tests
             $testParams['XUnitResultFileName'] = $ResultFile
 
+            # Ensure the directory exists
+            $resultDir = Split-Path -Path $ResultFile -Parent
+            if (-not (Test-Path -Path $resultDir)) {
+                New-Item -Path $resultDir -ItemType Directory -Force | Out-Null
+                Write-InfoMessage "Created test results directory: $resultDir"
+            }
+
+            # If the file exists, delete it to ensure we get fresh results
+            if (Test-Path -Path $ResultFile) {
+                Remove-Item -Path $ResultFile -Force
+                Write-InfoMessage "Removed existing test results file: $ResultFile"
+            }
+
             Write-InfoMessage "Results will be saved to: $ResultFile"
         }
 
@@ -506,9 +519,48 @@ function Invoke-RunTests {
                     foreach ($app in $publishedApps) {
                         Write-InfoMessage "  - $($app.Publisher)_$($app.Name)_$($app.Version) (Installed: $($app.IsInstalled))"
                     }
+
+                    # Check if the test app is installed
+                    $testApp = $publishedApps | Where-Object { $_.Name -like "*test*" }
+                    if ($testApp) {
+                        Write-InfoMessage "Test app found: $($testApp.Publisher)_$($testApp.Name)_$($testApp.Version)"
+                        Write-InfoMessage "Checking test codeunits in the test app..."
+
+                        # Try to get test codeunits directly
+                        try {
+                            $testCodeunits = Invoke-ScriptInBcContainer -containerName $ContainerName -scriptblock {
+                                param($testAppName)
+                                Get-NAVAppObjectMetadata -ServerInstance BC -Tenant default -AppName $testAppName |
+                                    Where-Object { $_.ObjectType -eq 'Codeunit' -and $_.SubType -eq 'Test' } |
+                                    Select-Object ObjectName, ObjectID
+                            } -argumentList $testApp.Name
+
+                            if ($testCodeunits -and $testCodeunits.Count -gt 0) {
+                                Write-InfoMessage "Found $($testCodeunits.Count) test codeunit(s) in the test app:"
+                                foreach ($codeunit in $testCodeunits) {
+                                    Write-InfoMessage "  - $($codeunit.ObjectName) (ID: $($codeunit.ObjectID))"
+                                }
+                                Write-InfoMessage "However, these test codeunits are not being recognized by the test runner."
+                            } else {
+                                Write-WarningMessage "No test codeunits found in the test app. Make sure your test codeunits have Subtype = Test;"
+                            }
+                        } catch {
+                            Write-WarningMessage "Failed to get test codeunits from the test app: $_"
+                        }
+                    } else {
+                        Write-WarningMessage "No test app found in the published extensions."
+                    }
                 } else {
                     Write-WarningMessage "No published extensions found in container."
                 }
+
+                # Provide guidance on fixing test issues
+                Write-InfoMessage "Possible reasons for tests not being found:"
+                Write-InfoMessage "1. Test codeunits don't have 'Subtype = Test;' property"
+                Write-InfoMessage "2. Test functions don't have the [Test] attribute"
+                Write-InfoMessage "3. The test app wasn't properly published or installed"
+                Write-InfoMessage "4. The test app doesn't have the correct dependencies"
+                Write-InfoMessage "5. The test app's ID ranges don't match the codeunit IDs"
             }
         } catch {
             Write-WarningMessage "Failed to get available tests from container: $_"
@@ -715,17 +767,36 @@ function Invoke-RunTests {
                 # Verify the file has content
                 $fileContent = Get-Content -Path $ResultFile -Raw
                 if ([string]::IsNullOrWhiteSpace($fileContent)) {
-                    Write-WarningMessage "Test results file is empty. Generating results from test data..."
-                    # Fall back to generating XML from test data if the file is empty
-                    GenerateTestResultsXml -Tests $tests -TotalTests $totalTests -PassedTests $passedTests -FailedTests $failedTests -SkippedTests $skippedTests -ResultFile $ResultFile
+                    Write-WarningMessage "Test results file is empty. Generating minimal XML structure..."
+                    # Create a minimal XML structure for empty test results
+                    $xmlContent = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<assemblies />
+"@
+                    Set-Content -Path $ResultFile -Value $xmlContent
+                    Write-InfoMessage "Created minimal test results XML at: $ResultFile"
+                } elseif ($fileContent -match "<assemblies\s*/>") {
+                    Write-WarningMessage "Test results file contains empty assemblies tag. This indicates no tests were found or run."
+                    Write-InfoMessage "Test results saved to: $ResultFile"
                 } else {
                     Write-InfoMessage "Test results saved to: $ResultFile"
                 }
             } elseif (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
-                Write-WarningMessage "Test results file not created. Generating results from test data..."
-                # Fall back to generating XML from test data if the file doesn't exist
+                Write-WarningMessage "Test results file not created. Generating minimal XML structure..."
+                # Create a minimal XML structure for empty test results
+                $xmlContent = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<assemblies />
+"@
                 try {
-                    GenerateTestResultsXml -Tests $tests -TotalTests $totalTests -PassedTests $passedTests -FailedTests $failedTests -SkippedTests $skippedTests -ResultFile $ResultFile
+                    # Ensure the directory exists
+                    $resultDir = Split-Path -Path $ResultFile -Parent
+                    if (-not (Test-Path -Path $resultDir)) {
+                        New-Item -Path $resultDir -ItemType Directory -Force | Out-Null
+                    }
+
+                    Set-Content -Path $ResultFile -Value $xmlContent
+                    Write-InfoMessage "Created minimal test results XML at: $ResultFile"
                 } catch {
                     Write-ErrorMessage "Failed to generate test results XML: $_"
                 }

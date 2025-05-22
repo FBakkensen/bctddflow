@@ -219,8 +219,30 @@ function Get-TestResultSummary {
         # Process test suites - handle both formats (testsuites and assemblies)
         $testSuites = @()
 
-        # Handle Business Central test results format (assemblies)
-        if ($xml.assemblies) {
+        # Handle empty assemblies (no tests found)
+        if ($xml.assemblies -and -not $xml.assemblies.assembly) {
+            # Create a default suite for empty test results
+            $suite = [PSCustomObject]@{
+                Name = "No Tests Found"
+                Tests = 0
+                Failures = 0
+                Skipped = 0
+                Duration = 0
+                Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                TestCases = @()
+            }
+            $testSuites += $suite
+
+            # Add a note about no tests being found
+            Write-WarningMessage "No tests were found in the container. Please check that your test app contains test codeunits."
+            Write-InfoMessage "Possible reasons for no tests being found:"
+            Write-InfoMessage "1. The test app doesn't contain any test codeunits"
+            Write-InfoMessage "2. Test codeunits don't have the [TestPermissions] attribute"
+            Write-InfoMessage "3. Test functions don't have the [Test] attribute"
+            Write-InfoMessage "4. The test app wasn't properly published to the container"
+        }
+        # Handle Business Central test results format (assemblies with content)
+        elseif ($xml.assemblies) {
             foreach ($assembly in $xml.assemblies.assembly) {
                 $suite = [PSCustomObject]@{
                     Name = $assembly.name

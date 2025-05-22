@@ -29,10 +29,12 @@
     This path is passed to Get-TDDConfiguration.ps1 for loading the configuration.
 .PARAMETER Country
     Country version for the Business Central container. Default is from configuration or 'w1'.
+.PARAMETER IncludeTestLibrariesOnly
+    Whether to include only the test libraries. Default is from configuration or $true.
+.PARAMETER IncludeTestFrameworkOnly
+    Whether to include only the test framework. Default is from configuration or $true.
 .PARAMETER IncludeTestToolkit
     Whether to include the test toolkit. Default is from configuration or $true.
-.PARAMETER IncludePerformanceToolkit
-    Whether to include the performance toolkit. Default is from configuration or $true.
 .PARAMETER AssignPremiumPlan
     Whether to assign the premium plan. Default is from configuration or $true.
 .EXAMPLE
@@ -83,10 +85,13 @@ param(
     [string]$Country,
 
     [Parameter(Mandatory = $false)]
-    [bool]$IncludeTestToolkit,
+    [bool]$IncludeTestLibrariesOnly,
 
     [Parameter(Mandatory = $false)]
-    [bool]$IncludePerformanceToolkit,
+    [bool]$IncludeTestFrameworkOnly,
+
+    [Parameter(Mandatory = $false)]
+    [bool]$IncludeTestToolkit,
 
     [Parameter(Mandatory = $false)]
     [bool]$AssignPremiumPlan
@@ -162,12 +167,16 @@ if (-not $PSBoundParameters.ContainsKey('Country')) {
     $Country = $config.Country
 }
 
-if (-not $PSBoundParameters.ContainsKey('IncludeTestToolkit')) {
-    $IncludeTestToolkit = $config.IncludeTestToolkit
+if (-not $PSBoundParameters.ContainsKey('IncludeTestLibrariesOnly')) {
+    $IncludeTestLibrariesOnly = $config.IncludeTestLibrariesOnly
 }
 
-if (-not $PSBoundParameters.ContainsKey('IncludePerformanceToolkit')) {
-    $IncludePerformanceToolkit = $config.IncludePerformanceToolkit
+if (-not $PSBoundParameters.ContainsKey('IncludeTestFrameworkOnly')) {
+    $IncludeTestFrameworkOnly = $config.IncludeTestFrameworkOnly
+}
+
+if (-not $PSBoundParameters.ContainsKey('IncludeTestToolkit')) {
+    $IncludeTestToolkit = $config.IncludeTestToolkit
 }
 
 if (-not $PSBoundParameters.ContainsKey('AssignPremiumPlan')) {
@@ -257,8 +266,9 @@ $containerParams = @{
     credential = $credential
     auth = $Auth
     artifactUrl = $artifactUrl
+    includeTestLibrariesOnly = $IncludeTestLibrariesOnly
+    includeTestFrameworkOnly = $IncludeTestFrameworkOnly
     includeTestToolkit = $IncludeTestToolkit
-    includePerformanceToolkit = $IncludePerformanceToolkit
     assignPremiumPlan = $AssignPremiumPlan
     enableTaskScheduler = $false  # Disable Task Scheduler to prevent test failures
 }
@@ -288,8 +298,9 @@ if (-not [string]::IsNullOrEmpty($MemoryLimit)) {
 Write-InfoMessage "Creating container with the following settings:"
 Write-InfoMessage "  Container Name: $ContainerName"
 Write-InfoMessage "  Auth Method: $Auth"
+Write-InfoMessage "  Include Test Libraries Only: $IncludeTestLibrariesOnly"
+Write-InfoMessage "  Include Test Framework Only: $IncludeTestFrameworkOnly"
 Write-InfoMessage "  Include Test Toolkit: $IncludeTestToolkit"
-Write-InfoMessage "  Include Performance Toolkit: $IncludePerformanceToolkit"
 Write-InfoMessage "  Assign Premium Plan: $AssignPremiumPlan"
 
 # Create the container with error handling
@@ -329,8 +340,9 @@ $result = [PSCustomObject]@{
     Auth                    = $Auth
     ArtifactUrl             = $artifactUrl
     Country                 = $Country
+    IncludeTestLibrariesOnly = $IncludeTestLibrariesOnly
+    IncludeTestFrameworkOnly = $IncludeTestFrameworkOnly
     IncludeTestToolkit      = $IncludeTestToolkit
-    IncludePerformanceToolkit = $IncludePerformanceToolkit
     AssignPremiumPlan       = $AssignPremiumPlan
     MemoryLimit             = $MemoryLimit
     WebClientUrl            = "http://$($containerInfo.IPAddress)/BC"
@@ -346,8 +358,9 @@ Write-InfoMessage "  Configuration File: $ConfigPath (Used: $((Test-PathIsFile -
 Write-InfoMessage "  Container Name: $ContainerName"
 Write-InfoMessage "  Auth Method: $Auth"
 Write-InfoMessage "  Country: $Country"
+Write-InfoMessage "  Include Test Libraries Only: $IncludeTestLibrariesOnly"
+Write-InfoMessage "  Include Test Framework Only: $IncludeTestFrameworkOnly"
 Write-InfoMessage "  Include Test Toolkit: $IncludeTestToolkit"
-Write-InfoMessage "  Include Performance Toolkit: $IncludePerformanceToolkit"
 Write-InfoMessage "  Web Client URL: $($result.WebClientUrl)"
 
 # Return the result and exit with success code
