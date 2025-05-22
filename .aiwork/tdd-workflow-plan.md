@@ -363,11 +363,13 @@ Create a PowerShell script named 'Prepare-AppSource.ps1' in the scripts folder t
 1. Takes parameters for source directory, output directory, and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Creates the output directory if it doesn't exist
-5. Copies the AL source files to the output directory, excluding any temporary or build files
-6. Validates the app.json file for required fields (publisher, name, version)
-7. Handles errors gracefully with clear error messages
-8. Provides feedback on successful preparation
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Creates the output directory if it doesn't exist
+6. Copies the AL source files to the output directory, excluding any temporary or build files
+7. Validates the app.json file for required fields (publisher, name, version)
+8. Handles errors gracefully with clear error messages
+9. Returns a strongly-typed [pscustomobject] with results
+10. Provides feedback on successful preparation
 Include parameter validation and help information.
 ```
 
@@ -379,6 +381,7 @@ Include parameter validation and help information.
 - Check output directory contains all necessary files
 - Verify successful output message
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -393,11 +396,14 @@ Create a PowerShell script named 'Compile-App.ps1' in the scripts folder that:
 1. Takes parameters for app source directory, output directory, and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Uses BcContainerHelper to compile the app in the container
-5. Applies compiler options from the configuration (code analysis, treat warnings as errors)
-6. Outputs the compiled app file (.app) to the specified output directory
-7. Handles errors gracefully with clear error messages
-8. Provides feedback on successful compilation including app version and file location
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Uses BcContainerHelper to compile the app in the container with proper error handling
+7. Uses the specific pattern for Business Central container operations with explicit parameters
+8. Applies compiler options from the configuration (code analysis, treat warnings as errors)
+9. Outputs the compiled app file (.app) to the specified output directory
+10. Returns a strongly-typed [pscustomobject] with compilation results
+11. Provides feedback on successful compilation including app version and file location
 Include parameter validation and help information.
 ```
 
@@ -409,6 +415,7 @@ Include parameter validation and help information.
 - Check compilation errors are properly reported
 - Verify successful output message with app details
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -424,11 +431,14 @@ Create a PowerShell script named 'Compile-TestApp.ps1' in the scripts folder tha
 1. Takes parameters for test app source directory, output directory, and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Uses BcContainerHelper to compile the test app in the container
-5. Applies compiler options from the configuration (code analysis, treat warnings as errors)
-6. Outputs the compiled test app file (.app) to the specified output directory
-7. Handles errors gracefully with clear error messages
-8. Provides feedback on successful compilation including app version and file location
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Uses BcContainerHelper to compile the test app in the container with proper error handling
+7. Uses the specific pattern for Business Central container operations with explicit parameters
+8. Applies compiler options from the configuration (code analysis, treat warnings as errors)
+9. Outputs the compiled test app file (.app) to the specified output directory
+10. Returns a strongly-typed [pscustomobject] with compilation results
+11. Provides feedback on successful compilation including app version and file location
 Include parameter validation and help information.
 ```
 
@@ -440,6 +450,7 @@ Include parameter validation and help information.
 - Check compilation errors are properly reported
 - Verify successful output message with app details
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -455,10 +466,14 @@ Create a PowerShell script named 'Publish-App.ps1' in the scripts folder that:
 1. Takes parameters for compiled app file path (.app file) and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Uses BcContainerHelper to publish the specified app to the container
-5. Applies publishing settings from the configuration (scope, sync mode, timeout)
-6. Handles errors gracefully with clear error messages
-7. Provides feedback on successful publishing including app details
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Uses BcContainerHelper to publish the specified app to the container with proper error handling
+7. Uses the specific pattern for Business Central container operations with explicit parameters
+8. Applies publishing settings from the configuration (scope, sync mode, timeout)
+9. Implements the app publishing workflow based on the provided skeleton code
+10. Returns a strongly-typed [pscustomobject] with publishing results
+11. Provides feedback on successful publishing including app details
 Include parameter validation and help information.
 ```
 
@@ -469,6 +484,7 @@ Include parameter validation and help information.
 - Verify successful output message
 - Check app is published in container using BcContainerHelper
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -484,11 +500,15 @@ Create a PowerShell script named 'Publish-TestApp.ps1' in the scripts folder tha
 1. Takes parameters for compiled test app file path (.app file) and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Uses BcContainerHelper to publish the test app to the container
-5. Verifies the main app is published first (dependency handling)
-6. Applies publishing settings from the configuration (scope, sync mode, timeout)
-7. Handles errors gracefully with clear error messages
-8. Provides feedback on successful publishing including app details
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Verifies the main app is published first (dependency handling)
+7. Uses BcContainerHelper to publish the test app to the container with proper error handling
+8. Uses the specific pattern for Business Central container operations with explicit parameters
+9. Applies publishing settings from the configuration (scope, sync mode, timeout)
+10. Implements the app publishing workflow based on the provided skeleton code
+11. Returns a strongly-typed [pscustomobject] with publishing results
+12. Provides feedback on successful publishing including app details
 Include parameter validation and help information.
 ```
 
@@ -499,6 +519,7 @@ Include parameter validation and help information.
 - Verify successful output message
 - Check test app is published in container using BcContainerHelper
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -515,11 +536,16 @@ Create a PowerShell script named 'Publish-Apps.ps1' in the scripts folder that:
 1. Takes parameters for compiled app file path, compiled test app file path, and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Has switches to control which apps to publish (app only, test only, or both)
-5. Applies publishing settings from the configuration (scope, sync mode, timeout)
-6. Calls the individual publish scripts with appropriate parameters
-7. Handles proper sequencing (main app before test app)
-8. Provides consolidated feedback on the publishing process
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Has switches to control which apps to publish (app only, test only, or both)
+7. Applies publishing settings from the configuration (scope, sync mode, timeout)
+8. Uses the specific pattern for Business Central container operations with explicit parameters
+9. Implements the app publishing workflow based on the provided skeleton code
+10. Calls the individual publish scripts with appropriate parameters
+11. Handles proper sequencing (main app before test app)
+12. Returns a strongly-typed [pscustomobject] with publishing results
+13. Provides consolidated feedback on the publishing process
 Include parameter validation and help information.
 ```
 
@@ -531,6 +557,7 @@ Include parameter validation and help information.
 - Run `.\scripts\Publish-Apps.ps1 -PublishTestApp` (should only publish test app)
 - Verify appropriate output messages for each scenario
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -549,11 +576,15 @@ Create a PowerShell script named 'Run-Tests.ps1' in the scripts folder that:
 1. Takes parameters for container name, test codeunit ID/name, and result file path with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Uses BcContainerHelper to run the specified tests in the container
-5. Applies test settings from the configuration (timeout, fail behavior)
-6. Captures test results and formats them for easy reading
-7. Supports running all tests or specific test codeunits
-8. Returns appropriate exit code based on test success/failure
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Uses BcContainerHelper to run the specified tests in the container with proper error handling
+7. Uses the specific pattern for Business Central container operations with explicit parameters
+8. Applies test settings from the configuration (timeout, fail behavior)
+9. Captures test results and formats them for easy reading
+10. Supports running all tests or specific test codeunits
+11. Returns a strongly-typed [pscustomobject] with test results
+12. Returns appropriate exit code based on test success/failure
 Include parameter validation and help information.
 ```
 
@@ -563,6 +594,7 @@ Include parameter validation and help information.
 - Verify test results are displayed correctly
 - Check exit code is 0 for success and non-zero for failure
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -579,10 +611,12 @@ Create a PowerShell script named 'View-TestResults.ps1' in the scripts folder th
 1. Takes a parameter for the test results file path with default from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Formats and displays test results in a readable format
-5. Applies TDD session settings from the configuration (detail level, show passed tests)
-6. Provides summary statistics (tests run, passed, failed)
-7. Highlights failed tests with details on why they failed
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Formats and displays test results in a readable format
+6. Applies TDD session settings from the configuration (detail level, show passed tests)
+7. Provides summary statistics (tests run, passed, failed)
+8. Returns a strongly-typed [pscustomobject] with result summary
+9. Highlights failed tests with details on why they failed
 Include parameter validation and help information.
 ```
 
@@ -593,6 +627,7 @@ Include parameter validation and help information.
 - Verify results are displayed in a readable format
 - Check summary statistics are accurate
 - Confirm the script uses the centralized configuration management
+- Verify the script returns a properly structured object with results
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -609,8 +644,11 @@ Include parameter validation and help information.
 Create a PowerShell script named 'Start-TDDSession.ps1' in the scripts folder that:
 1. Uses Get-TDDConfiguration.ps1 to load configuration settings
 2. Uses Common-Functions.ps1 for utility functions
-3. Initializes the environment by calling Initialize-TDDEnvironment.ps1
-4. Provides a menu-driven interface for the TDD workflow with options to:
+3. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+4. Initializes the environment by calling Initialize-TDDEnvironment.ps1
+5. Verifies the container exists and is running using structured Docker output formats
+6. Uses the specific pattern for Business Central container operations with explicit parameters
+7. Provides a menu-driven interface for the TDD workflow with options to:
    - Prepare app source
    - Compile app
    - Prepare test app source
@@ -622,9 +660,10 @@ Create a PowerShell script named 'Start-TDDSession.ps1' in the scripts folder th
    - View test results
    - Edit configuration settings
    - Exit the session
-5. Applies TDD session settings from the configuration (remember last run, auto-save results)
-6. Maintains state between commands according to configuration
-7. Provides clear feedback after each action
+8. Applies TDD session settings from the configuration (remember last run, auto-save results)
+9. Maintains state between commands according to configuration
+10. Returns strongly-typed [pscustomobject] results for each operation
+11. Provides clear feedback after each action
 Include detailed help information and usage examples.
 ```
 
@@ -635,6 +674,7 @@ Include detailed help information and usage examples.
 - Test editing configuration settings through the menu
 - Check feedback is clear and helpful
 - Confirm the script uses the centralized configuration management
+- Verify the script returns properly structured objects with results for each operation
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -655,15 +695,19 @@ Create a PowerShell script named 'Watch-Changes.ps1' in the scripts folder that:
 1. Takes parameters for app path, test app path, and container name with defaults from configuration
 2. Uses Get-TDDConfiguration.ps1 to load configuration settings
 3. Uses Common-Functions.ps1 for utility functions
-4. Applies watch mode settings from the configuration (interval, auto-publish, auto-run tests)
-5. Watches for changes in the specified directories
-6. When changes are detected, automatically:
+4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+5. Verifies the container exists and is running using structured Docker output formats
+6. Uses the specific pattern for Business Central container operations with explicit parameters
+7. Applies watch mode settings from the configuration (interval, auto-publish, auto-run tests)
+8. Watches for changes in the specified directories
+9. When changes are detected, automatically:
    - Prepares the source files
    - Compiles the changed app(s)
    - Publishes the changed app(s)
    - Runs the tests
    - Displays the results
-7. Continues watching until manually stopped
+10. Returns strongly-typed [pscustomobject] results for each operation
+11. Continues watching until manually stopped
 Include parameter validation and help information.
 ```
 
@@ -676,6 +720,7 @@ Include parameter validation and help information.
 - Verify test app is automatically prepared, compiled, published, and tests are run
 - Check results are displayed correctly
 - Confirm the script uses the centralized configuration management
+- Verify the script returns properly structured objects with results for each operation
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -697,9 +742,14 @@ Include parameter validation and help information.
 Create a markdown file named 'TDD-Workflow.md' in the root directory that:
 1. Explains the TDD workflow for Business Central
 2. Provides detailed instructions for using each script
-3. Includes examples for common scenarios
-4. Explains how to customize the workflow for specific needs
-5. Includes troubleshooting information for common issues
+3. Includes examples for common scenarios with exact command syntax
+4. Documents the app publishing workflow based on the provided skeleton code
+5. Explains how to customize the workflow for specific needs through the TDDConfig.psd1 file
+6. Includes troubleshooting information for common issues
+7. Documents the proper error handling practices used in the scripts
+8. Explains the use of structured Docker output formats for container operations
+9. Describes the specific pattern for Business Central container operations
+10. Includes information about the strongly-typed objects returned by each script
 The documentation should be comprehensive but easy to follow.
 ```
 
@@ -707,6 +757,10 @@ The documentation should be comprehensive but easy to follow.
 - Review `TDD-Workflow.md` for completeness and accuracy
 - Verify all scripts are documented with examples
 - Check troubleshooting section covers common issues
+- Verify the documentation includes information about error handling
+- Confirm the documentation explains the use of structured Docker output formats
+- Check that the documentation describes the specific pattern for Business Central container operations
+- Verify the documentation includes information about the strongly-typed objects returned by each script
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -722,6 +776,11 @@ Update the README.md file in the root directory to:
 2. Provide a brief overview of the available scripts
 3. Link to the detailed TDD-Workflow.md documentation
 4. Include a quick start guide for getting started with TDD
+5. Document the centralized configuration management approach
+6. Explain the proper error handling practices used in the scripts
+7. Describe the use of structured Docker output formats for container operations
+8. Explain the specific pattern for Business Central container operations
+9. Include information about the strongly-typed objects returned by each script
 The updates should integrate well with the existing README content.
 ```
 
@@ -730,6 +789,11 @@ The updates should integrate well with the existing README content.
 - Verify TDD workflow section is added
 - Check links to documentation work correctly
 - Ensure quick start guide is clear and concise
+- Verify the README includes information about centralized configuration management
+- Confirm the README explains proper error handling practices
+- Check that the README describes the use of structured Docker output formats
+- Verify the README explains the specific pattern for Business Central container operations
+- Confirm the README includes information about strongly-typed objects
 
 **Dependencies:**
 - Task 15 (Create Workflow Documentation)
@@ -744,6 +808,12 @@ Create an example test and implementation to demonstrate the TDD workflow:
 1. Create a test codeunit in the test app that tests a new feature
 2. Create the implementation in the main app that makes the test pass
 3. Document the example in a markdown file named 'TDD-Example.md' in the .aiwork directory
+4. Include step-by-step instructions for using the TDD workflow scripts with this example
+5. Show how to use the centralized configuration management
+6. Demonstrate proper error handling practices
+7. Show the use of structured Docker output formats for container operations
+8. Demonstrate the specific pattern for Business Central container operations
+9. Show how to interpret the strongly-typed objects returned by each script
 The example should be simple but illustrative of the TDD process.
 ```
 
@@ -752,6 +822,11 @@ The example should be simple but illustrative of the TDD process.
 - Follow the TDD workflow with the example
 - Verify tests fail initially and pass after implementation
 - Check documentation clearly explains the example
+- Verify the example demonstrates centralized configuration management
+- Confirm the example shows proper error handling practices
+- Check that the example demonstrates the use of structured Docker output formats
+- Verify the example shows the specific pattern for Business Central container operations
+- Confirm the example shows how to interpret the strongly-typed objects returned by each script
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -781,7 +856,11 @@ Perform an end-to-end test of the TDD workflow and document the results:
 16. Run tests to verify success
 17. Try the Start-TDDSession.ps1 script for an interactive workflow
 18. Test the Watch-Changes.ps1 script for automatic workflow
-19. Document any issues or improvements needed
+19. Verify proper error handling in all scripts
+20. Confirm the use of structured Docker output formats for container operations
+21. Validate the specific pattern for Business Central container operations
+22. Check the strongly-typed objects returned by each script
+23. Document any issues or improvements needed
 ```
 
 **Verification:**
@@ -789,6 +868,10 @@ Perform an end-to-end test of the TDD workflow and document the results:
 - Verify each step works as expected
 - Document any issues or improvements needed
 - Make necessary script adjustments
+- Verify proper error handling in all scripts
+- Confirm the use of structured Docker output formats for container operations
+- Validate the specific pattern for Business Central container operations
+- Check the strongly-typed objects returned by each script
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -805,7 +888,12 @@ Refine the scripts based on the end-to-end testing:
 2. Improve error handling and feedback
 3. Optimize performance where possible
 4. Ensure consistent parameter naming and behavior across scripts
-5. Update documentation to reflect any changes
+5. Verify proper use of structured Docker output formats for container operations
+6. Validate the specific pattern for Business Central container operations
+7. Ensure all scripts return strongly-typed [pscustomobject] results
+8. Verify all scripts use the centralized configuration management
+9. Ensure all scripts follow PSScriptAnalyzer guidelines
+10. Update documentation to reflect any changes
 ```
 
 **Verification:**
@@ -813,6 +901,12 @@ Refine the scripts based on the end-to-end testing:
 - Verify issues are resolved
 - Check documentation is updated
 - Perform another end-to-end test to confirm improvements
+- Verify proper error handling in all scripts
+- Confirm the use of structured Docker output formats for container operations
+- Validate the specific pattern for Business Central container operations
+- Check the strongly-typed objects returned by each script
+- Verify all scripts use the centralized configuration management
+- Ensure all scripts follow PSScriptAnalyzer guidelines
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -829,12 +923,17 @@ Refine the scripts based on the end-to-end testing:
 Create a master script named 'TDD-Workflow.ps1' in the scripts folder that:
 1. Uses Get-TDDConfiguration.ps1 to load configuration settings
 2. Uses Common-Functions.ps1 for utility functions
-3. Provides a single entry point for all TDD workflow functions
-4. Includes command-line parameters for all major functions with defaults from configuration
-5. Supports both interactive and non-interactive modes
-6. Can be used in CI/CD pipelines
-7. Allows overriding configuration settings via parameters
-8. Includes comprehensive help information
+3. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
+4. Verifies the container exists and is running using structured Docker output formats
+5. Uses the specific pattern for Business Central container operations with explicit parameters
+6. Provides a single entry point for all TDD workflow functions
+7. Includes command-line parameters for all major functions with defaults from configuration
+8. Supports both interactive and non-interactive modes
+9. Can be used in CI/CD pipelines
+10. Allows overriding configuration settings via parameters
+11. Returns strongly-typed [pscustomobject] results for each operation
+12. Follows PSScriptAnalyzer guidelines
+13. Includes comprehensive help information
 This should be a unified interface for the entire TDD workflow.
 ```
 
@@ -844,6 +943,11 @@ This should be a unified interface for the entire TDD workflow.
 - Verify both interactive and non-interactive modes work
 - Check script can be used in a CI/CD context
 - Confirm the script uses the centralized configuration management
+- Verify proper error handling in the script
+- Confirm the use of structured Docker output formats for container operations
+- Validate the specific pattern for Business Central container operations
+- Check the strongly-typed objects returned by the script
+- Verify the script follows PSScriptAnalyzer guidelines
 
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
@@ -860,14 +964,21 @@ Update all documentation to reflect the final state of the TDD workflow:
 2. Update README.md with any additional information
 3. Create a quick reference card as TDD-QuickRef.md in the .aiwork directory
 4. Create a configuration guide as TDD-Configuration.md explaining all settings in scripts\TDDConfig.psd1
-5. Ensure all examples and instructions are accurate
-6. Include information about customizing the workflow through configuration settings
+5. Create a best practices guide as TDD-BestPractices.md explaining:
+   - Proper error handling practices
+   - Use of structured Docker output formats
+   - Specific pattern for Business Central container operations
+   - Strongly-typed objects for script results
+   - PSScriptAnalyzer compliance
+6. Ensure all examples and instructions are accurate
+7. Include information about customizing the workflow through configuration settings
 ```
 
 **Verification:**
 - Review all documentation for accuracy and completeness
 - Verify quick reference card covers all essential commands
 - Check configuration guide explains all settings clearly
+- Verify best practices guide covers all required topics
 - Test examples work as described
 - Ensure documentation is user-friendly and explains how to customize the workflow
 
