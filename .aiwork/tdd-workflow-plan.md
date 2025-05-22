@@ -251,7 +251,7 @@ Refactor the 'Verify-Environment.ps1' script in the scripts folder to:
 **Dependencies:**
 - Task 4.4 (Create Common Functions Script)
 
-### 4.6. [ ] Refactor Initialize-TDDEnvironment.ps1 to Use Common-Functions.ps1
+### 4.6. [x] Refactor Initialize-TDDEnvironment.ps1 to Use Common-Functions.ps1
 
 **Prompt:**
 ```
