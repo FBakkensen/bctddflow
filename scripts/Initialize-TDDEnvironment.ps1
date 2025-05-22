@@ -7,11 +7,11 @@
     2. If the container doesn't exist, creates it with appropriate settings
     3. If the container exists but isn't running, starts it
     4. Sets up any necessary environment variables for the TDD workflow
-    
+
     The script uses settings from the TDDConfig.psd1 file, including container name,
     artifact URL, authentication method, and other container settings.
     If the configuration file cannot be loaded, default values are used.
-    
+
     This script uses the centralized configuration management provided by Get-TDDConfiguration.ps1
     and common utility functions from Common-Functions.ps1.
 .PARAMETER ContainerName
@@ -19,10 +19,10 @@
 .PARAMETER ImageName
     The Business Central Docker image to use. If not provided, latest sandbox artifact will be used.
 .PARAMETER Auth
-    Authentication method for the container. Valid options are 'Windows', 'UserPassword', or 'NavUserPassword'. 
+    Authentication method for the container. Valid options are 'Windows', 'UserPassword', or 'NavUserPassword'.
     Default is from configuration or 'NavUserPassword'.
 .PARAMETER Credential
-    Credentials for the container admin user. If not provided, default credentials (admin/P@ssw0rd) will be used. 
+    Credentials for the container admin user. If not provided, default credentials (admin/P@ssw0rd) will be used.
     These credentials are forwarded to the SetupTestContainer.ps1 script.
 .PARAMETER MemoryLimit
     Memory limit for the container. Default is from configuration or '8G'.
@@ -70,10 +70,10 @@ param(
 
     [Parameter(Mandatory = $false)]
     [bool]$Accept_Outdated,
-    
+
     [Parameter(Mandatory = $false)]
     [bool]$SkipVerification = $false,
-    
+
     [Parameter(Mandatory = $false)]
     [string]$ConfigPath
 )
@@ -134,9 +134,9 @@ function Initialize-BCTDDEnvironment {
     if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
         $params['ConfigPath'] = $ConfigPath
     }
-    
+
     $config = Get-TDDConfiguration @params
-    
+
     # If configuration is null, exit with error
     if ($null -eq $config) {
         Write-ErrorMessage "Failed to load configuration. Please check the configuration file and try again."
@@ -190,7 +190,7 @@ function Initialize-BCTDDEnvironment {
     if (-not $SkipVerification) {
         Write-InfoMessage "Verifying environment prerequisites..."
         $verifyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "Verify-Environment.ps1"
-        
+
         if (-not (Test-PathIsFile -Path $verifyScriptPath)) {
             Write-ErrorMessage "Verify-Environment.ps1 script not found at path: $verifyScriptPath"
             return $false
@@ -209,7 +209,7 @@ function Initialize-BCTDDEnvironment {
                 return $false
             }
         } -ErrorMessage "Error running Verify-Environment.ps1" -ContinueOnError
-        
+
         # Log the verification result
         if ($verifyResult) {
             Write-InfoMessage "Environment verification passed."
@@ -225,13 +225,13 @@ function Initialize-BCTDDEnvironment {
 
     # Step 2: Check if BcContainerHelper module is available and try to import it
     $bcContainerHelperAvailable = Import-BcContainerHelperModule
-    
+
     if (-not $bcContainerHelperAvailable) {
         Write-ErrorMessage "BcContainerHelper module is not installed or cannot be imported." "Installing BcContainerHelper module..."
         try {
             Install-Module BcContainerHelper -Force
             $bcContainerHelperAvailable = Import-BcContainerHelperModule -Force
-            
+
             if ($bcContainerHelperAvailable) {
                 Write-SuccessMessage "BcContainerHelper module installed and imported successfully."
             } else {
@@ -258,17 +258,17 @@ function Initialize-BCTDDEnvironment {
     # Step 4: Check if container exists and create/start as needed
     $containerExists = Test-DockerContainerExists -ContainerName $ContainerName
     $containerRunning = $false
-    
+
     if ($containerExists) {
         $containerRunning = Test-DockerContainerRunning -ContainerName $ContainerName
     }
-    
+
     Write-InfoMessage "Container status: Exists=$containerExists, Running=$containerRunning"
 
     # Handle container creation or startup
     if (-not $containerExists) {
         Write-InfoMessage "Container '$ContainerName' does not exist. Creating new container..."
-        
+
         # Prepare parameters for SetupTestContainer.ps1
         $setupParams = @{
             ContainerName = $ContainerName
@@ -283,7 +283,7 @@ function Initialize-BCTDDEnvironment {
         if (-not [string]::IsNullOrEmpty($ImageName)) {
             $setupParams.Add("ImageName", $ImageName)
         }
-        
+
         # Forward credentials if provided
         if ($PSBoundParameters.ContainsKey('Credential')) {
             # Just pass the credential object directly
@@ -292,12 +292,12 @@ function Initialize-BCTDDEnvironment {
 
         # Get the path to SetupTestContainer.ps1
         $setupScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "SetupTestContainer.ps1"
-        
+
         if (-not (Test-PathIsFile -Path $setupScriptPath)) {
             Write-ErrorMessage "SetupTestContainer.ps1 script not found at path: $setupScriptPath"
             return $false
         }
-        
+
         Write-InfoMessage "Setup parameters for container creation:"
         foreach ($key in $setupParams.Keys) {
             if ($key -ne "Credential" -and $key -ne "Password") {  # Don't log sensitive information
@@ -309,19 +309,19 @@ function Initialize-BCTDDEnvironment {
 
         $setupSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
             Write-InfoMessage "Calling SetupTestContainer.ps1 to create the container..."
-            
+
             # Call the setup script and capture its output
-            $script:containerInfo = & $setupScriptPath @setupParams -ErrorAction Stop
-            
+            $script:containerInfo = & $setupScriptPath @setupParams
+
             # If we get here, the script succeeded
             Write-SuccessMessage "Container '$ContainerName' created successfully."
             $true
-        } -ErrorMessage "Failed to create container '$ContainerName'" -ContinueOnError $false
-        
+        } -ErrorMessage "Failed to create container '$ContainerName'"
+
         if ($setupSuccess) {
             $containerExists = $true
             $containerRunning = $true
-            
+
             # Store container info for later use
             $script:containerDetails = $script:containerInfo
         } else {
@@ -330,7 +330,7 @@ function Initialize-BCTDDEnvironment {
     }
     elseif (-not $containerRunning) {
         Write-InfoMessage "Container '$ContainerName' exists but is not running. Starting container..."
-        
+
         $startSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
             # Try to use Start-BcContainer from BcContainerHelper module first
             if (Test-BcContainerHelperCommandAvailable -CommandName "Start-BcContainer") {
@@ -343,8 +343,8 @@ function Initialize-BCTDDEnvironment {
                 docker start $ContainerName | Out-Null
             }
             $true
-        } -ErrorMessage "Failed to start container '$ContainerName'" -ContinueOnError $false
-        
+        } -ErrorMessage "Failed to start container '$ContainerName'"
+
         if ($startSuccess) {
             Write-SuccessMessage "Container '$ContainerName' started successfully."
             $containerRunning = $true
@@ -358,15 +358,15 @@ function Initialize-BCTDDEnvironment {
 
     # Step 5: Set up environment variables
     Write-InfoMessage "Setting up environment variables for TDD workflow..."
-    
+
     # Set environment variables for the current session
     $env:BC_CONTAINER_NAME = $ContainerName
     $env:BC_CONTAINER_IMAGE = $ImageName
-    
+
     # Set additional environment variables from configuration
     $env:BC_AUTH_METHOD = $Auth
     $env:BC_CONFIG_PATH = $ConfigPath
-    
+
     # Set path variables from configuration if available
     if ($config.SourcePaths) {
         if ($config.SourcePaths.App) {
@@ -376,7 +376,7 @@ function Initialize-BCTDDEnvironment {
             $env:BC_TEST_SOURCE_PATH = Resolve-TDDPath -Path $config.SourcePaths.Test
         }
     }
-    
+
     if ($config.OutputPaths) {
         if ($config.OutputPaths.Build) {
             $env:BC_BUILD_PATH = Resolve-TDDPath -Path $config.OutputPaths.Build -CreateIfNotExists
@@ -388,14 +388,14 @@ function Initialize-BCTDDEnvironment {
             $env:BC_TEST_RESULTS_PATH = Resolve-TDDPath -Path $config.OutputPaths.TestResults -CreateIfNotExists
         }
     }
-    
+
     Write-SuccessMessage "Environment variables set up successfully."
     Write-InfoMessage "Environment variables set:"
     Write-InfoMessage "  BC_CONTAINER_NAME = $env:BC_CONTAINER_NAME"
     Write-InfoMessage "  BC_CONTAINER_IMAGE = $env:BC_CONTAINER_IMAGE"
     Write-InfoMessage "  BC_AUTH_METHOD = $env:BC_AUTH_METHOD"
     Write-InfoMessage "  BC_CONFIG_PATH = $env:BC_CONFIG_PATH"
-    
+
     if ($env:BC_APP_SOURCE_PATH) { Write-InfoMessage "  BC_APP_SOURCE_PATH = $env:BC_APP_SOURCE_PATH" }
     if ($env:BC_TEST_SOURCE_PATH) { Write-InfoMessage "  BC_TEST_SOURCE_PATH = $env:BC_TEST_SOURCE_PATH" }
     if ($env:BC_BUILD_PATH) { Write-InfoMessage "  BC_BUILD_PATH = $env:BC_BUILD_PATH" }
@@ -404,18 +404,18 @@ function Initialize-BCTDDEnvironment {
 
     # Step 6: Display container information
     if ($containerRunning) {
-        $displaySuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
+        Invoke-ScriptWithErrorHandling -ScriptBlock {
             # If container was just created, use the details returned by SetupTestContainer.ps1
             if ($script:containerDetails) {
                 $containerIP = $script:containerDetails.IPAddress
-                
+
                 Write-SectionHeader "Container Information" -ForegroundColor Cyan
                 Write-Host "  Name: $($script:containerDetails.ContainerName)" -ForegroundColor White
                 Write-Host "  IP Address: $containerIP" -ForegroundColor White
                 Write-Host "  Auth: $($script:containerDetails.Auth)" -ForegroundColor White
                 Write-Host "  Status: Running" -ForegroundColor Green
                 Write-Host "  Configuration: $($script:containerDetails.ConfigPath) (Used: $($script:containerDetails.ConfigUsed))" -ForegroundColor White
-                
+
                 Write-SectionHeader "Access Information" -ForegroundColor Cyan
                 Write-Host "  Web Client: $($script:containerDetails.WebClientUrl)" -ForegroundColor White
                 Write-Host "  SOAP Services: $($script:containerDetails.SOAPServicesUrl)" -ForegroundColor White
@@ -427,9 +427,9 @@ function Initialize-BCTDDEnvironment {
                 if ($null -eq $containerInfo) {
                     throw "Failed to retrieve container information"
                 }
-                
+
                 $containerIP = $containerInfo.IPAddress
-                
+
                 Write-SectionHeader "Container Information" -ForegroundColor Cyan
                 Write-Host "  Name: $ContainerName" -ForegroundColor White
                 Write-Host "  Image: $($containerInfo.Image)" -ForegroundColor White
@@ -437,20 +437,20 @@ function Initialize-BCTDDEnvironment {
                 Write-Host "  Status: $($containerInfo.State)" -ForegroundColor Green
                 Write-Host "  Configuration: $ConfigPath (Used: $(Test-PathIsFile -Path $ConfigPath))" -ForegroundColor White
                 Write-Host "  Auth: $Auth" -ForegroundColor White
-                
+
                 Write-SectionHeader "Access Information" -ForegroundColor Cyan
                 Write-Host "  Web Client: http://$containerIP/BC" -ForegroundColor White
                 Write-Host "  SOAP Services: http://$containerIP/BC/WS" -ForegroundColor White
                 Write-Host "  OData Services: http://$containerIP/BC/ODataV4" -ForegroundColor White
             }
-            
+
             Write-SectionHeader "Environment Ready" -ForegroundColor Green -DecorationType Box
             Write-SuccessMessage "Environment is ready for Business Central TDD workflow!"
             Write-InfoMessage "Configuration used: $ConfigPath"
-            
+
             return $true
-        } -ErrorMessage "Failed to retrieve container information" -ContinueOnError
-        
+        } -ErrorMessage "Failed to retrieve container information"
+
         # Even if we fail to display container information, we still consider the initialization successful
     }
 
@@ -460,7 +460,7 @@ function Initialize-BCTDDEnvironment {
 # Execute the initialization with error handling
 $success = Invoke-ScriptWithErrorHandling -ScriptBlock {
     $result = Initialize-BCTDDEnvironment
-    
+
     # Set the exit code for the script
     if (-not $result) {
         # Exit with non-zero code to indicate failure when used in scripts
