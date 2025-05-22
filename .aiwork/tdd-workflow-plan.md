@@ -46,57 +46,178 @@ Include detailed comments explaining each step and any parameters that can be cu
 
 ## App Management
 
-### 3. [ ] Create App Publishing Script
+### 3. [ ] Create Central Configuration File
+
+**Prompt:**
+```
+Create a PowerShell Data File (PSD1) named 'TDDConfig.psd1' in the scripts directory that:
+1. Centralizes all configuration settings for the TDD workflow
+2. Includes environment settings (container name, artifact URL, auth method)
+3. Defines path settings for source code and output directories
+4. Specifies compilation settings (code analysis, warnings as errors)
+5. Contains publishing settings (scope, sync mode, timeout)
+6. Includes test settings (results path, timeout, fail behavior)
+7. Provides watch mode and TDD session settings
+8. Defines script behavior settings (error handling, verbosity)
+Include detailed comments explaining each setting and available options.
+```
+
+**Verification:**
+- Review `scripts\TDDConfig.psd1` for completeness
+- Verify all settings have appropriate default values
+- Check that comments explain each setting clearly
+- Test importing the file using `Import-PowerShellDataFile -Path ".\scripts\TDDConfig.psd1"`
+
+### 4. [ ] Create Configuration Helper Script
+
+**Prompt:**
+```
+Create a PowerShell script named 'Get-TDDConfiguration.ps1' in the scripts folder that:
+1. Provides a function to load the TDDConfig.psd1 file
+2. Validates required configuration settings
+3. Allows overriding settings via parameters
+4. Merges default settings with user-provided settings
+5. Returns a complete configuration object for use in other scripts
+Include parameter validation and help information.
+```
+
+**Verification:**
+- Run `.\scripts\Get-TDDConfiguration.ps1`
+- Script should load and return the configuration
+- Verify validation of required settings
+- Test overriding settings with parameters
+- Check error handling for missing or invalid configuration
+
+### 5. [ ] Create App Source Preparation Script
+
+**Prompt:**
+```
+Create a PowerShell script named 'Prepare-AppSource.ps1' in the scripts folder that:
+1. Takes parameters for source directory, output directory, and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Creates the output directory if it doesn't exist
+4. Copies the AL source files to the output directory, excluding any temporary or build files
+5. Validates the app.json file for required fields (publisher, name, version)
+6. Handles errors gracefully with clear error messages
+7. Provides feedback on successful preparation
+Include parameter validation and help information.
+```
+
+**Verification:**
+- Run `.\scripts\Prepare-AppSource.ps1` (should use default paths from config)
+- Run `.\scripts\Prepare-AppSource.ps1 -SourceDirectory ".\app" -OutputDirectory ".\build\app"` (should override config)
+- Script should create the output directory and copy source files
+- Verify app.json is validated
+- Check output directory contains all necessary files
+- Verify successful output message
+
+### 6. [ ] Create App Compilation Script
+
+**Prompt:**
+```
+Create a PowerShell script named 'Compile-App.ps1' in the scripts folder that:
+1. Takes parameters for app source directory, output directory, and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Uses BcContainerHelper to compile the app in the container
+4. Applies compiler options from the configuration (code analysis, treat warnings as errors)
+5. Outputs the compiled app file (.app) to the specified output directory
+6. Handles errors gracefully with clear error messages
+7. Provides feedback on successful compilation including app version and file location
+Include parameter validation and help information.
+```
+
+**Verification:**
+- Run `.\scripts\Compile-App.ps1` (should use default paths from config)
+- Run `.\scripts\Compile-App.ps1 -AppSourceDirectory ".\build\app" -OutputDirectory ".\build\output"` (should override config)
+- Script should compile the app in the container
+- Verify .app file is created in the output directory
+- Check compilation errors are properly reported
+- Verify successful output message with app details
+
+### 7. [ ] Create Test App Compilation Script
+
+**Prompt:**
+```
+Create a PowerShell script named 'Compile-TestApp.ps1' in the scripts folder that:
+1. Takes parameters for test app source directory, output directory, and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Uses BcContainerHelper to compile the test app in the container
+4. Applies compiler options from the configuration (code analysis, treat warnings as errors)
+5. Outputs the compiled test app file (.app) to the specified output directory
+6. Handles errors gracefully with clear error messages
+7. Provides feedback on successful compilation including app version and file location
+Include parameter validation and help information.
+```
+
+**Verification:**
+- Run `.\scripts\Compile-TestApp.ps1` (should use default paths from config)
+- Run `.\scripts\Compile-TestApp.ps1 -TestAppSourceDirectory ".\build\test" -OutputDirectory ".\build\output"` (should override config)
+- Script should compile the test app in the container
+- Verify test .app file is created in the output directory
+- Check compilation errors are properly reported
+- Verify successful output message with app details
+
+### 8. [ ] Create App Publishing Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Publish-App.ps1' in the scripts folder that:
-1. Takes parameters for app path and container name (default to 'bctest')
-2. Uses BcContainerHelper to publish the specified app to the container
-3. Handles errors gracefully with clear error messages
-4. Provides feedback on successful publishing
+1. Takes parameters for compiled app file path (.app file) and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Uses BcContainerHelper to publish the specified app to the container
+4. Applies publishing settings from the configuration (scope, sync mode, timeout)
+5. Handles errors gracefully with clear error messages
+6. Provides feedback on successful publishing including app details
 Include parameter validation and help information.
 ```
 
 **Verification:**
-- Run `.\scripts\Publish-App.ps1 -AppPath ".\app"`
+- Run `.\scripts\Publish-App.ps1` (should use default paths from config)
+- Run `.\scripts\Publish-App.ps1 -AppPath ".\build\output\app.app"` (should override config)
 - Script should publish the app to the container
 - Verify successful output message
 - Check app is published in container using BcContainerHelper
 
-### 4. [ ] Create Test App Publishing Script
+### 9. [ ] Create Test App Publishing Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Publish-TestApp.ps1' in the scripts folder that:
-1. Takes parameters for test app path and container name (default to 'bctest')
-2. Uses BcContainerHelper to publish the test app to the container
-3. Ensures the main app is published first (dependency handling)
-4. Handles errors gracefully with clear error messages
-5. Provides feedback on successful publishing
+1. Takes parameters for compiled test app file path (.app file) and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Uses BcContainerHelper to publish the test app to the container
+4. Verifies the main app is published first (dependency handling)
+5. Applies publishing settings from the configuration (scope, sync mode, timeout)
+6. Handles errors gracefully with clear error messages
+7. Provides feedback on successful publishing including app details
 Include parameter validation and help information.
 ```
 
 **Verification:**
-- Run `.\scripts\Publish-TestApp.ps1 -TestAppPath ".\test"`
+- Run `.\scripts\Publish-TestApp.ps1` (should use default paths from config)
+- Run `.\scripts\Publish-TestApp.ps1 -TestAppPath ".\build\output\testapp.app"` (should override config)
 - Script should publish the test app to the container
 - Verify successful output message
 - Check test app is published in container using BcContainerHelper
 
-### 5. [ ] Create Combined App Publishing Script
+### 10. [ ] Create Combined App Publishing Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Publish-Apps.ps1' in the scripts folder that:
-1. Takes parameters for app path, test app path, and container name (with appropriate defaults)
-2. Has switches to control which apps to publish (app only, test only, or both)
-3. Calls the individual publish scripts with appropriate parameters
-4. Provides consolidated feedback on the publishing process
+1. Takes parameters for compiled app file path, compiled test app file path, and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Has switches to control which apps to publish (app only, test only, or both)
+4. Applies publishing settings from the configuration (scope, sync mode, timeout)
+5. Calls the individual publish scripts with appropriate parameters
+6. Handles proper sequencing (main app before test app)
+7. Provides consolidated feedback on the publishing process
 Include parameter validation and help information.
 ```
 
 **Verification:**
-- Run `.\scripts\Publish-Apps.ps1 -PublishApp -PublishTestApp`
+- Run `.\scripts\Publish-Apps.ps1 -PublishApp -PublishTestApp` (should use default paths from config)
+- Run `.\scripts\Publish-Apps.ps1 -AppPath ".\build\output\app.app" -TestAppPath ".\build\output\testapp.app" -PublishApp -PublishTestApp` (should override config)
 - Script should publish both apps to the container
 - Run `.\scripts\Publish-Apps.ps1 -PublishApp` (should only publish main app)
 - Run `.\scripts\Publish-Apps.ps1 -PublishTestApp` (should only publish test app)
@@ -104,95 +225,113 @@ Include parameter validation and help information.
 
 ## Test Execution
 
-### 6. [ ] Create Test Runner Script
+### 11. [ ] Create Test Runner Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Run-Tests.ps1' in the scripts folder that:
-1. Takes parameters for container name, test codeunit ID/name, and result file path
-2. Uses BcContainerHelper to run the specified tests in the container
-3. Captures test results and formats them for easy reading
-4. Supports running all tests or specific test codeunits
-5. Returns appropriate exit code based on test success/failure
+1. Takes parameters for container name, test codeunit ID/name, and result file path with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Uses BcContainerHelper to run the specified tests in the container
+4. Applies test settings from the configuration (timeout, fail behavior)
+5. Captures test results and formats them for easy reading
+6. Supports running all tests or specific test codeunits
+7. Returns appropriate exit code based on test success/failure
 Include parameter validation and help information.
 ```
 
 **Verification:**
-- Run `.\scripts\Run-Tests.ps1` (should run all tests)
+- Run `.\scripts\Run-Tests.ps1` (should run all tests using config defaults)
 - Run `.\scripts\Run-Tests.ps1 -TestCodeunit "HelloWorld Test"` (should run specific test)
 - Verify test results are displayed correctly
 - Check exit code is 0 for success and non-zero for failure
 
-### 7. [ ] Create Test Results Viewer Script
+### 12. [ ] Create Test Results Viewer Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'View-TestResults.ps1' in the scripts folder that:
-1. Takes a parameter for the test results file path
-2. Formats and displays test results in a readable format
-3. Provides summary statistics (tests run, passed, failed)
-4. Highlights failed tests with details on why they failed
+1. Takes a parameter for the test results file path with default from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Formats and displays test results in a readable format
+4. Applies TDD session settings from the configuration (detail level, show passed tests)
+5. Provides summary statistics (tests run, passed, failed)
+6. Highlights failed tests with details on why they failed
 Include parameter validation and help information.
 ```
 
 **Verification:**
-- Run tests with `.\scripts\Run-Tests.ps1 -ResultFile "TestResults.xml"`
-- Run `.\scripts\View-TestResults.ps1 -ResultFile "TestResults.xml"`
+- Run tests with `.\scripts\Run-Tests.ps1` (should use default result file path from config)
+- Run `.\scripts\View-TestResults.ps1` (should use default result file path from config)
+- Run `.\scripts\View-TestResults.ps1 -ResultFile "TestResults.xml"` (should override config)
 - Verify results are displayed in a readable format
 - Check summary statistics are accurate
 
 ## TDD Workflow Integration
 
-### 8. [ ] Create TDD Session Script
+### 13. [ ] Create TDD Session Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Start-TDDSession.ps1' in the scripts folder that:
-1. Initializes the environment by calling Initialize-TDDEnvironment.ps1
-2. Provides a menu-driven interface for the TDD workflow with options to:
+1. Uses Get-TDDConfiguration.ps1 to load configuration settings
+2. Initializes the environment by calling Initialize-TDDEnvironment.ps1
+3. Provides a menu-driven interface for the TDD workflow with options to:
+   - Prepare app source
+   - Compile app
+   - Prepare test app source
+   - Compile test app
    - Publish app
    - Publish test app
    - Run all tests
    - Run specific tests
    - View test results
+   - Edit configuration settings
    - Exit the session
-3. Maintains state between commands (remembers last test run, etc.)
-4. Provides clear feedback after each action
+4. Applies TDD session settings from the configuration (remember last run, auto-save results)
+5. Maintains state between commands according to configuration
+6. Provides clear feedback after each action
 Include detailed help information and usage examples.
 ```
 
 **Verification:**
 - Run `.\scripts\Start-TDDSession.ps1`
 - Navigate through menu options and verify each works correctly
-- Verify state is maintained between commands
+- Verify state is maintained between commands according to configuration
+- Test editing configuration settings through the menu
 - Check feedback is clear and helpful
 
-### 9. [ ] Create Watch Mode Script
+### 14. [ ] Create Watch Mode Script
 
 **Prompt:**
 ```
 Create a PowerShell script named 'Watch-Changes.ps1' in the scripts folder that:
-1. Takes parameters for app path, test app path, and container name
-2. Watches for changes in the specified directories
-3. When changes are detected, automatically:
+1. Takes parameters for app path, test app path, and container name with defaults from TDDConfig.psd1
+2. Uses Get-TDDConfiguration.ps1 to load configuration settings
+3. Applies watch mode settings from the configuration (interval, auto-publish, auto-run tests)
+4. Watches for changes in the specified directories
+5. When changes are detected, automatically:
+   - Prepares the source files
+   - Compiles the changed app(s)
    - Publishes the changed app(s)
    - Runs the tests
    - Displays the results
-4. Continues watching until manually stopped
+6. Continues watching until manually stopped
 Include parameter validation and help information.
 ```
 
 **Verification:**
-- Run `.\scripts\Watch-Changes.ps1`
+- Run `.\scripts\Watch-Changes.ps1` (should use default paths from config)
+- Run `.\scripts\Watch-Changes.ps1 -AppPath ".\app" -TestAppPath ".\test"` (should override config)
 - Make a change to a file in the app directory
-- Verify app is automatically published and tests are run
+- Verify app is automatically prepared, compiled, published, and tests are run
 - Make a change to a file in the test directory
-- Verify test app is automatically published and tests are run
+- Verify test app is automatically prepared, compiled, published, and tests are run
 - Check results are displayed correctly
 
 ## Documentation
 
-### 10. [ ] Create Workflow Documentation
+### 15. [ ] Create Workflow Documentation
 
 **Prompt:**
 ```
@@ -210,7 +349,7 @@ The documentation should be comprehensive but easy to follow.
 - Verify all scripts are documented with examples
 - Check troubleshooting section covers common issues
 
-### 11. [ ] Update README.md
+### 16. [ ] Update README.md
 
 **Prompt:**
 ```
@@ -230,7 +369,7 @@ The updates should integrate well with the existing README content.
 
 ## Testing and Refinement
 
-### 12. [ ] Create Example Test and Implementation
+### 17. [ ] Create Example Test and Implementation
 
 **Prompt:**
 ```
@@ -247,20 +386,30 @@ The example should be simple but illustrative of the TDD process.
 - Verify tests fail initially and pass after implementation
 - Check documentation clearly explains the example
 
-### 13. [ ] Perform End-to-End Workflow Test
+### 18. [ ] Perform End-to-End Workflow Test
 
 **Prompt:**
 ```
 Perform an end-to-end test of the TDD workflow and document the results:
-1. Start with the Initialize-TDDEnvironment.ps1 script
-2. Publish both apps using Publish-Apps.ps1
-3. Run tests using Run-Tests.ps1
-4. View results using View-TestResults.ps1
-5. Make a change to the test app that causes a test to fail
-6. Run tests to verify failure
-7. Make a change to the main app to fix the test
-8. Run tests to verify success
-9. Document any issues or improvements needed
+1. Verify and update the scripts\TDDConfig.psd1 file with appropriate settings
+2. Start with the Initialize-TDDEnvironment.ps1 script
+3. Prepare app source using Prepare-AppSource.ps1
+4. Compile the main app using Compile-App.ps1
+5. Prepare test app source using Prepare-AppSource.ps1
+6. Compile the test app using Compile-TestApp.ps1
+7. Publish the main app using Publish-App.ps1
+8. Publish the test app using Publish-TestApp.ps1 (or use Publish-Apps.ps1 for both)
+9. Run tests using Run-Tests.ps1
+10. View results using View-TestResults.ps1
+11. Make a change to the test app that causes a test to fail
+12. Recompile and republish the test app
+13. Run tests to verify failure
+14. Make a change to the main app to fix the test
+15. Recompile and republish the main app
+16. Run tests to verify success
+17. Try the Start-TDDSession.ps1 script for an interactive workflow
+18. Test the Watch-Changes.ps1 script for automatic workflow
+19. Document any issues or improvements needed
 ```
 
 **Verification:**
@@ -269,7 +418,7 @@ Perform an end-to-end test of the TDD workflow and document the results:
 - Document any issues or improvements needed
 - Make necessary script adjustments
 
-### 14. [ ] Refine Scripts Based on Testing
+### 19. [ ] Refine Scripts Based on Testing
 
 **Prompt:**
 ```
@@ -289,16 +438,18 @@ Refine the scripts based on the end-to-end testing:
 
 ## Final Integration
 
-### 15. [ ] Create Master Script
+### 20. [ ] Create Master Script
 
 **Prompt:**
 ```
 Create a master script named 'TDD-Workflow.ps1' in the scripts folder that:
-1. Provides a single entry point for all TDD workflow functions
-2. Includes command-line parameters for all major functions
-3. Supports both interactive and non-interactive modes
-4. Can be used in CI/CD pipelines
-5. Includes comprehensive help information
+1. Uses Get-TDDConfiguration.ps1 to load configuration settings
+2. Provides a single entry point for all TDD workflow functions
+3. Includes command-line parameters for all major functions with defaults from configuration
+4. Supports both interactive and non-interactive modes
+5. Can be used in CI/CD pipelines
+6. Allows overriding configuration settings via parameters
+7. Includes comprehensive help information
 This should be a unified interface for the entire TDD workflow.
 ```
 
@@ -308,7 +459,7 @@ This should be a unified interface for the entire TDD workflow.
 - Verify both interactive and non-interactive modes work
 - Check script can be used in a CI/CD context
 
-### 16. [ ] Final Documentation Update
+### 21. [ ] Final Documentation Update
 
 **Prompt:**
 ```
@@ -316,11 +467,14 @@ Update all documentation to reflect the final state of the TDD workflow:
 1. Update TDD-Workflow.md with final script details
 2. Update README.md with any additional information
 3. Create a quick reference card as TDD-QuickRef.md in the .aiwork directory
-4. Ensure all examples and instructions are accurate
+4. Create a configuration guide as TDD-Configuration.md explaining all settings in scripts\TDDConfig.psd1
+5. Ensure all examples and instructions are accurate
+6. Include information about customizing the workflow through configuration settings
 ```
 
 **Verification:**
 - Review all documentation for accuracy and completeness
 - Verify quick reference card covers all essential commands
-- Check examples work as described
-- Ensure documentation is user-friendly
+- Check configuration guide explains all settings clearly
+- Test examples work as described
+- Ensure documentation is user-friendly and explains how to customize the workflow
