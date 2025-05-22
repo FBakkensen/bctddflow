@@ -147,6 +147,18 @@ function Test-TDDEnvironment {
         Write-SuccessMessage "BcContainerHelper module is installed and imported (Version: $($bcContainerHelper.Version))"
     }
 
+    # Check 1.1: Verify Expand-Archive cmdlet is available (needed for extracting alc.exe)
+    Write-InfoMessage "Checking if Expand-Archive cmdlet is available..."
+
+    $expandArchiveAvailable = $null -ne (Get-Command -Name Expand-Archive -ErrorAction SilentlyContinue)
+
+    if (-not $expandArchiveAvailable) {
+        Write-ErrorMessage "Expand-Archive cmdlet is not available." "This cmdlet is required for extracting alc.exe from VSIX files. Make sure you're using PowerShell 5.0 or later, or install the Microsoft.PowerShell.Archive module."
+        $script:allChecksPass = $false
+    } else {
+        Write-SuccessMessage "Expand-Archive cmdlet is available"
+    }
+
     # Check 2: Verify Docker is running
     Write-InfoMessage "Checking if Docker is running..."
 
