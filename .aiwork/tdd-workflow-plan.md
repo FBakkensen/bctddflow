@@ -46,7 +46,7 @@ Include detailed comments explaining each step and any parameters that can be cu
 
 ## App Management
 
-### 3. [ ] Create Central Configuration File
+### 3. [x] Create Central Configuration File
 
 **Prompt:**
 ```
