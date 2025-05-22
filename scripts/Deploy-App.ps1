@@ -266,7 +266,13 @@ function Invoke-DeployApp {
         }
 
         # Import BcContainerHelper module
-        if (-not (Import-BcContainerHelperModule)) {
+        # Check if we should suppress verbose output from BcContainerHelper
+        $suppressVerbose = $false
+        if ($config.ScriptSettings -and $config.ScriptSettings.SuppressBcContainerHelperVerbose) {
+            $suppressVerbose = $config.ScriptSettings.SuppressBcContainerHelperVerbose
+        }
+
+        if (-not (Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose)) {
             throw "BcContainerHelper module is not installed or cannot be imported. Please install the module and try again."
         }
 
@@ -375,7 +381,7 @@ function Invoke-DeployApp {
                         if ($app.Dependencies) {
                             foreach ($dependency in $app.Dependencies.Split(',')) {
                                 $dependency = $dependency.Trim()
-                                if ($dependency -match "$($appInfo.Publisher)_$($appInfo.Name)") {
+                                if ($dependency -match "$($appInfo.Publisher)_$($appInfo.Name)" -and -not [string]::IsNullOrWhiteSpace($dependency)) {
                                     $dependsOn = $true
                                     break
                                 }
@@ -394,15 +400,37 @@ function Invoke-DeployApp {
                     Write-InfoMessage "Found $($dependencies.Count) dependent app(s). Uninstalling dependencies first..."
 
                     foreach ($dependency in $dependencies) {
+                        # Skip dependencies with empty names
+                        if ([string]::IsNullOrWhiteSpace($dependency.Name)) {
+                            Write-WarningMessage "Skipping dependency with empty name"
+                            continue
+                        }
+
                         Write-InfoMessage "Uninstalling dependent app: $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version)"
 
                         $depUninstallSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
+                            try {
+                                # First try to uninstall from tenant
+                                Uninstall-BcContainerApp `
+                                    -containerName $ContainerName `
+                                    -name $dependency.Name `
+                                    -publisher $dependency.Publisher `
+                                    -version $dependency.Version `
+                                    -force `
+                                    -ErrorAction SilentlyContinue
+                            }
+                            catch {
+                                Write-WarningMessage "Failed to uninstall dependent app from tenant: $_"
+                            }
+
+                            # Then unpublish
                             Unpublish-BcContainerApp `
                                 -containerName $ContainerName `
                                 -name $dependency.Name `
                                 -publisher $dependency.Publisher `
                                 -version $dependency.Version `
-                                -force
+                                -force `
+                                -ErrorAction SilentlyContinue
                             return $true
                         } -ErrorMessage "Failed to uninstall dependent app" -ContinueOnError
 
@@ -428,19 +456,30 @@ function Invoke-DeployApp {
                                     -name $appInfo.Name `
                                     -publisher $appInfo.Publisher `
                                     -version $versionedApp.Version `
-                                    -force
+                                    -force `
+                                    -doNotSaveData `
+                                    -ErrorAction SilentlyContinue
                             }
                             catch {
                                 Write-WarningMessage "Failed to uninstall app from tenant: $_"
+                                # Continue anyway - we'll try to unpublish
                             }
 
                             # Then try to unpublish the app
-                            Unpublish-BcContainerApp `
-                                -containerName $ContainerName `
-                                -name $appInfo.Name `
-                                -publisher $appInfo.Publisher `
-                                -version $versionedApp.Version `
-                                -force
+                            try {
+                                Unpublish-BcContainerApp `
+                                    -containerName $ContainerName `
+                                    -name $appInfo.Name `
+                                    -publisher $appInfo.Publisher `
+                                    -version $versionedApp.Version `
+                                    -force `
+                                    -ErrorAction SilentlyContinue
+                            }
+                            catch {
+                                Write-WarningMessage "Failed to unpublish app: $_"
+                                # Continue anyway - we'll try to publish the new version
+                            }
+
                             return $true
                         } -ErrorMessage "Failed to uninstall app version $($versionedApp.Version)" -ContinueOnError
 
@@ -460,19 +499,30 @@ function Invoke-DeployApp {
                                 -name $appInfo.Name `
                                 -publisher $appInfo.Publisher `
                                 -version $appInfo.Version `
-                                -force
+                                -force `
+                                -doNotSaveData `
+                                -ErrorAction SilentlyContinue
                         }
                         catch {
                             Write-WarningMessage "Failed to uninstall app from tenant: $_"
+                            # Continue anyway - we'll try to unpublish
                         }
 
                         # Then try to unpublish the app
-                        Unpublish-BcContainerApp `
-                            -containerName $ContainerName `
-                            -name $appInfo.Name `
-                            -publisher $appInfo.Publisher `
-                            -version $appInfo.Version `
-                            -force
+                        try {
+                            Unpublish-BcContainerApp `
+                                -containerName $ContainerName `
+                                -name $appInfo.Name `
+                                -publisher $appInfo.Publisher `
+                                -version $appInfo.Version `
+                                -force `
+                                -ErrorAction SilentlyContinue
+                        }
+                        catch {
+                            Write-WarningMessage "Failed to unpublish app: $_"
+                            # Continue anyway - we'll try to publish the new version
+                        }
+
                         return $true
                     } -ErrorMessage "Failed to uninstall existing app" -ContinueOnError
                 }
@@ -490,14 +540,50 @@ function Invoke-DeployApp {
 
         $publishSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
             # Use minimal parameters for better compatibility
-            $publishResult = Publish-BcContainerApp `
-                -containerName $ContainerName `
-                -appFile $resolvedAppPath `
-                -skipVerification:$true `
-                -sync `
-                -install
+            try {
+                # First try to publish with sync and install
+                $publishResult = Publish-BcContainerApp `
+                    -containerName $ContainerName `
+                    -appFile $resolvedAppPath `
+                    -skipVerification:$true `
+                    -sync `
+                    -install `
+                    -syncMode ForceSync `
+                    -scope Tenant
 
-            return $publishResult
+                return $publishResult
+            }
+            catch {
+                Write-WarningMessage "Failed to publish app with sync and install: $_"
+
+                # Try publishing without sync and install first
+                Write-InfoMessage "Trying to publish without sync and install..."
+                $publishResult = Publish-BcContainerApp `
+                    -containerName $ContainerName `
+                    -appFile $resolvedAppPath `
+                    -skipVerification:$true
+
+                # Then try to sync separately
+                Write-InfoMessage "Trying to sync app..."
+                Sync-BcContainerApp `
+                    -containerName $ContainerName `
+                    -appName $appInfo.Name `
+                    -appPublisher $appInfo.Publisher `
+                    -appVersion $appInfo.Version `
+                    -mode ForceSync `
+                    -ErrorAction SilentlyContinue
+
+                # Then try to install separately
+                Write-InfoMessage "Trying to install app..."
+                Install-BcContainerApp `
+                    -containerName $ContainerName `
+                    -appName $appInfo.Name `
+                    -appPublisher $appInfo.Publisher `
+                    -appVersion $appInfo.Version `
+                    -ErrorAction SilentlyContinue
+
+                return $publishResult
+            }
         } -ErrorMessage "Failed to publish app to container"
 
         if ($publishSuccess -ne $false) {

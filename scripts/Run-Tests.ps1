@@ -379,7 +379,13 @@ function Invoke-RunTests {
         }
 
         # Import BcContainerHelper module
-        if (-not (Import-BcContainerHelperModule)) {
+        # Check if we should suppress verbose output from BcContainerHelper
+        $suppressVerbose = $false
+        if ($config.ScriptSettings -and $config.ScriptSettings.SuppressBcContainerHelperVerbose) {
+            $suppressVerbose = $config.ScriptSettings.SuppressBcContainerHelperVerbose
+        }
+
+        if (-not (Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose)) {
             throw "BcContainerHelper module is not installed or cannot be imported. Please install the module and try again."
         }
 
@@ -481,7 +487,10 @@ function Invoke-RunTests {
         try {
             $availableTests = Get-TestsFromBcContainer -containerName $ContainerName -credential $testParams['credential']
             if ($availableTests -and $availableTests.Count -gt 0) {
-                Write-InfoMessage "Found $($availableTests.Count) tests in container."
+                # Just log the available test codeunits for now
+                # We'll get more detailed information after running the tests
+                Write-InfoMessage "Found $($availableTests.Count) test codeunit(s) in container."
+                Write-InfoMessage "Note: Each test codeunit may contain multiple test functions."
                 foreach ($test in $availableTests) {
                     Write-InfoMessage "  - $($test.TestCodeunit): $($test.TestFunction)"
                 }
@@ -608,7 +617,7 @@ function Invoke-RunTests {
                 # Use the parsed results if we found any
                 if ($testResults.Count -gt 0) {
                     $tests = $testResults
-                    Write-InfoMessage "Parsed $($tests.Count) test results from output."
+                    Write-InfoMessage "Parsed $($tests.Count) test function(s) from output."
                 }
             }
 
@@ -621,7 +630,7 @@ function Invoke-RunTests {
                 # If no test details were returned but the test output indicates success,
                 # we'll create a synthetic test result based on the output
                 if ($testOutput -eq $true) {
-                    Write-InfoMessage "No test details returned, but tests were run successfully."
+                    Write-InfoMessage "No detailed test results returned, but tests were run successfully. Analyzing test output..."
                     $totalTests = 1
                     $passedTests = 1
                     $failedTests = 0

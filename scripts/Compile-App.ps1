@@ -183,7 +183,13 @@ function Get-AlcPath {
         }
 
         # Check if BcContainerHelper is available
-        if (Import-BcContainerHelperModule) {
+        # Check if we should suppress verbose output from BcContainerHelper
+        $suppressVerbose = $false
+        if ($config.ScriptSettings -and $config.ScriptSettings.SuppressBcContainerHelperVerbose) {
+            $suppressVerbose = $config.ScriptSettings.SuppressBcContainerHelperVerbose
+        }
+
+        if (Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose) {
             # Try to get alc.exe from BcContainerHelper
             if (Test-BcContainerHelperCommandAvailable -CommandName "Get-AlToolPath") {
                 $alcPath = Get-AlToolPath
@@ -357,7 +363,7 @@ function Get-AlcPath {
             # If extraction from artifacts failed, try BcContainerHelper
             Write-InfoMessage "Attempting to find alc.exe from other sources..."
 
-            if (Import-BcContainerHelperModule) {
+            if (Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose) {
                 # Try to download alc.exe using BcContainerHelper
                 if (Test-BcContainerHelperCommandAvailable -CommandName "Download-ALToolsPackage") {
                     try {

@@ -6,7 +6,7 @@
     1. Message display functions (Write-InfoMessage, Write-SuccessMessage, Write-ErrorMessage, Write-WarningMessage)
     2. BcContainerHelper module import function
     3. Other common helper functions for the TDD workflow
-    
+
     These functions are designed to be dot-sourced into other scripts to provide consistent functionality.
 .EXAMPLE
     . .\scripts\Common-Functions.ps1
@@ -47,7 +47,7 @@ function Write-InfoMessage {
         [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
         [string]$Message
     )
-    
+
     Write-Host "INFO: $Message" -ForegroundColor Cyan
 }
 
@@ -68,7 +68,7 @@ function Write-SuccessMessage {
         [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
         [string]$Message
     )
-    
+
     Write-Host "SUCCESS: $Message" -ForegroundColor Green
 }
 
@@ -94,13 +94,13 @@ function Write-ErrorMessage {
     param (
         [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
         [string]$Message,
-        
+
         [Parameter(Mandatory = $false, Position = 1)]
         [string]$Instructions
     )
-    
+
     Write-Host "ERROR: $Message" -ForegroundColor Red
-    
+
     if (-not [string]::IsNullOrWhiteSpace($Instructions)) {
         Write-Host "INSTRUCTIONS: $Instructions" -ForegroundColor Yellow
     }
@@ -123,7 +123,7 @@ function Write-WarningMessage {
         [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
         [string]$Message
     )
-    
+
     Write-Host "WARNING: $Message" -ForegroundColor Yellow
 }
 
@@ -150,17 +150,17 @@ function Write-SectionHeader {
     param (
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Title,
-        
+
         [Parameter(Mandatory = $false)]
         [System.ConsoleColor]$ForegroundColor = [System.ConsoleColor]::White,
-        
+
         [Parameter(Mandatory = $false)]
         [ValidateSet("None", "Underline", "Box")]
         [string]$DecorationType = "Underline"
     )
-    
+
     Write-Host ""
-    
+
     switch ($DecorationType) {
         "None" {
             Write-Host $Title -ForegroundColor $ForegroundColor
@@ -176,7 +176,7 @@ function Write-SectionHeader {
             Write-Host $border -ForegroundColor $ForegroundColor
         }
     }
-    
+
     Write-Host ""
 }
 
@@ -193,6 +193,8 @@ function Import-BcContainerHelperModule {
         If the module is not found, it provides instructions on how to install it.
     .PARAMETER Force
         If specified, forces the module to be reloaded even if it's already loaded.
+    .PARAMETER SuppressVerbose
+        If specified, suppresses verbose output during module import.
     .OUTPUTS
         System.Boolean. Returns $true if the module was imported successfully, $false otherwise.
     .EXAMPLE
@@ -203,59 +205,97 @@ function Import-BcContainerHelperModule {
     .EXAMPLE
         Import-BcContainerHelperModule -Force
         # Forces the module to be reloaded
+    .EXAMPLE
+        Import-BcContainerHelperModule -SuppressVerbose
+        # Imports the module with suppressed verbose output
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
-        [switch]$Force
+        [switch]$Force,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$SuppressVerbose
     )
-    
+
     # Check if module is already imported and not forcing reload
     if (-not $Force -and (Get-Module -Name BcContainerHelper)) {
         Write-InfoMessage "BcContainerHelper module is already imported."
         return $true
     }
-    
+
     # If forcing reload, remove the module first
     if ($Force -and (Get-Module -Name BcContainerHelper)) {
         Write-InfoMessage "Removing existing BcContainerHelper module for forced reload."
         Remove-Module -Name BcContainerHelper -Force -ErrorAction SilentlyContinue
     }
-    
-    # Check if module is available in the user's module path
-    if (Test-Path -Path $userModulePath) {
-        try {
-            # Find the latest version folder
-            $latestVersion = Get-ChildItem -Path $userModulePath -Directory | 
-                             Sort-Object -Property Name -Descending | 
-                             Select-Object -First 1
-            
-            if ($latestVersion) {
-                $modulePath = Join-Path -Path $latestVersion.FullName -ChildPath "BcContainerHelper.psd1"
-                if (Test-Path -Path $modulePath) {
-                    Write-InfoMessage "Importing BcContainerHelper module from user module path: $modulePath"
-                    Import-Module $modulePath -Force
-                    Write-SuccessMessage "BcContainerHelper module imported successfully (Version: $((Get-Module -Name BcContainerHelper).Version))"
-                    return $true
+
+    # Save current preference values
+    $originalVerbosePreference = $VerbosePreference
+    $originalInformationPreference = $InformationPreference
+    $originalWarningPreference = $WarningPreference
+
+    # Suppress verbose output if requested
+    if ($SuppressVerbose) {
+        $VerbosePreference = 'SilentlyContinue'
+        $InformationPreference = 'SilentlyContinue'
+        $WarningPreference = 'SilentlyContinue'
+    }
+
+    $moduleImported = $false
+
+    try {
+        # Check if module is available in the user's module path
+        if (Test-Path -Path $userModulePath) {
+            try {
+                # Find the latest version folder
+                $latestVersion = Get-ChildItem -Path $userModulePath -Directory |
+                                 Sort-Object -Property Name -Descending |
+                                 Select-Object -First 1
+
+                if ($latestVersion) {
+                    $modulePath = Join-Path -Path $latestVersion.FullName -ChildPath "BcContainerHelper.psd1"
+                    if (Test-Path -Path $modulePath) {
+                        if (-not $SuppressVerbose) {
+                            Write-InfoMessage "Importing BcContainerHelper module from user module path: $modulePath"
+                        }
+                        Import-Module $modulePath -Force
+                        $moduleImported = $true
+                    }
+                }
+            }
+            catch {
+                if (-not $SuppressVerbose) {
+                    Write-WarningMessage "Error importing BcContainerHelper from user module path: $_"
                 }
             }
         }
-        catch {
-            Write-WarningMessage "Error importing BcContainerHelper from user module path: $_"
+
+        # Try to import from any available location if not already imported
+        if (-not $moduleImported) {
+            if (-not $SuppressVerbose) {
+                Write-InfoMessage "Attempting to import BcContainerHelper module from PSModulePath..."
+            }
+            Import-Module BcContainerHelper -ErrorAction Stop
+            $moduleImported = $true
         }
-    }
-    
-    # Try to import from any available location
-    try {
-        Write-InfoMessage "Attempting to import BcContainerHelper module from PSModulePath..."
-        Import-Module BcContainerHelper -ErrorAction Stop
-        Write-SuccessMessage "BcContainerHelper module imported successfully (Version: $((Get-Module -Name BcContainerHelper).Version))"
-        return $true
+
+        if ($moduleImported) {
+            Write-SuccessMessage "BcContainerHelper module imported successfully (Version: $((Get-Module -Name BcContainerHelper).Version))"
+        }
     }
     catch {
         Write-ErrorMessage "BcContainerHelper module is not installed or cannot be imported." "Install the module by running: Install-Module BcContainerHelper -Force"
-        return $false
+        $moduleImported = $false
     }
+    finally {
+        # Restore original preference values
+        $VerbosePreference = $originalVerbosePreference
+        $InformationPreference = $originalInformationPreference
+        $WarningPreference = $originalWarningPreference
+    }
+
+    return $moduleImported
 }
 
 function Test-BcContainerHelperCommandAvailable {
@@ -278,7 +318,7 @@ function Test-BcContainerHelperCommandAvailable {
         [Parameter(Mandatory = $true)]
         [string]$CommandName
     )
-    
+
     # Check if BcContainerHelper is imported
     if (-not (Get-Module -Name BcContainerHelper)) {
         $imported = Import-BcContainerHelperModule
@@ -286,7 +326,7 @@ function Test-BcContainerHelperCommandAvailable {
             return $false
         }
     }
-    
+
     # Check if the command exists
     $command = Get-Command -Name $CommandName -Module BcContainerHelper -ErrorAction SilentlyContinue
     return ($null -ne $command)
@@ -311,7 +351,7 @@ function Test-DockerRunning {
     #>
     [CmdletBinding()]
     param()
-    
+
     try {
         docker info 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
@@ -344,7 +384,7 @@ function Test-DockerContainerExists {
         [Parameter(Mandatory = $true)]
         [string]$ContainerName
     )
-    
+
     try {
         $containerList = docker ps -a --filter "name=$ContainerName" --format "{{.Names}}" 2>$null
         return ($null -ne $containerList -and $containerList.Trim() -eq $ContainerName)
@@ -374,13 +414,13 @@ function Test-DockerContainerRunning {
         [Parameter(Mandatory = $true)]
         [string]$ContainerName
     )
-    
+
     try {
         # First check if the container exists
         if (-not (Test-DockerContainerExists -ContainerName $ContainerName)) {
             return $false
         }
-        
+
         # Check if the container is running
         $runningState = docker container inspect -f "{{.State.Running}}" $ContainerName 2>$null
         return ($null -ne $runningState -and $runningState.Trim() -eq "true")
@@ -409,17 +449,17 @@ function Get-DockerContainerInfo {
         [Parameter(Mandatory = $true)]
         [string]$ContainerName
     )
-    
+
     try {
         # Check if the container exists
         if (-not (Test-DockerContainerExists -ContainerName $ContainerName)) {
             Write-ErrorMessage "Container '$ContainerName' does not exist."
             return $null
         }
-        
+
         # Get container information
         $containerJson = docker container inspect $ContainerName | ConvertFrom-Json
-        
+
         # Extract relevant information
         $containerInfo = [PSCustomObject]@{
             Name = $ContainerName
@@ -432,7 +472,7 @@ function Get-DockerContainerInfo {
             Image = $containerJson.Config.Image
             Labels = $containerJson.Config.Labels
         }
-        
+
         return $containerInfo
     }
     catch {
@@ -474,14 +514,14 @@ function Resolve-TDDPath {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$BasePath = (Get-Location).Path,
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$CreateIfNotExists
     )
-    
+
     # Check if the path is already absolute
     if ([System.IO.Path]::IsPathRooted($Path)) {
         $resolvedPath = $Path
@@ -490,7 +530,7 @@ function Resolve-TDDPath {
         # Resolve the path relative to the base path
         $resolvedPath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($BasePath, $Path))
     }
-    
+
     # Create the directory if requested and it doesn't exist
     if ($CreateIfNotExists -and -not (Test-Path -Path $resolvedPath -PathType Container)) {
         try {
@@ -501,7 +541,7 @@ function Resolve-TDDPath {
             Write-ErrorMessage "Failed to create directory: $resolvedPath" "Ensure you have permission to create directories in this location."
         }
     }
-    
+
     return $resolvedPath
 }
 
@@ -525,7 +565,7 @@ function Test-PathIsDirectory {
         [Parameter(Mandatory = $true)]
         [string]$Path
     )
-    
+
     return (Test-Path -Path $Path -PathType Container)
 }
 
@@ -549,7 +589,7 @@ function Test-PathIsFile {
         [Parameter(Mandatory = $true)]
         [string]$Path
     )
-    
+
     return (Test-Path -Path $Path -PathType Leaf)
 }
 
@@ -578,10 +618,10 @@ function Test-ValidCredential {
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]$Credential
     )
-    
-    return ($null -ne $Credential -and 
-            -not [string]::IsNullOrWhiteSpace($Credential.UserName) -and 
-            $null -ne $Credential.Password -and 
+
+    return ($null -ne $Credential -and
+            -not [string]::IsNullOrWhiteSpace($Credential.UserName) -and
+            $null -ne $Credential.Password -and
             $Credential.Password.Length -gt 0)
 }
 
@@ -605,7 +645,7 @@ function Test-ValidContainerName {
         [Parameter(Mandatory = $true)]
         [string]$ContainerName
     )
-    
+
     # Docker container names must match the regex: [a-zA-Z0-9][a-zA-Z0-9_.-]+
     return ($ContainerName -match "^[a-zA-Z0-9][a-zA-Z0-9_.-]+$")
 }
@@ -630,7 +670,7 @@ function Test-ValidAuthMethod {
         [Parameter(Mandatory = $true)]
         [string]$Auth
     )
-    
+
     $validAuthMethods = @("Windows", "UserPassword", "NavUserPassword")
     return ($Auth -in $validAuthMethods)
 }
@@ -663,36 +703,36 @@ function Invoke-ScriptWithErrorHandling {
     param(
         [Parameter(Mandatory = $true)]
         [scriptblock]$ScriptBlock,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ErrorMessage = "An error occurred while executing the script block",
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$ContinueOnError
     )
-    
+
     try {
         # Save the current error action preference
         $previousErrorActionPreference = $ErrorActionPreference
-        
+
         # Set error action preference to Stop to ensure all errors are caught
         $ErrorActionPreference = 'Stop'
-        
+
         # Execute the script block
         & $ScriptBlock
-        
+
         # Restore the previous error action preference
         $ErrorActionPreference = $previousErrorActionPreference
-        
+
         return $true
     }
     catch {
         # Restore the previous error action preference
         $ErrorActionPreference = $previousErrorActionPreference
-        
+
         # Display the error message
         Write-ErrorMessage "$ErrorMessage`: $_"
-        
+
         # Return false to indicate failure
         return $false
     }

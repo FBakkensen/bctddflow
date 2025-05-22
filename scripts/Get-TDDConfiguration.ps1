@@ -5,7 +5,7 @@
     This script provides a function to load the TDDConfig.psd1 file, validate required settings,
     allow overriding settings via parameters, merge default settings with user-provided settings,
     and return a complete configuration object for use in other scripts.
-    
+
     This script uses common utility functions from Common-Functions.ps1 for consistent functionality
     across the TDD workflow scripts.
 .PARAMETER ConfigPath
@@ -83,7 +83,7 @@ if (-not (Test-Path -Path $commonFunctionsPath)) {
 if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
     $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
     Write-InfoMessage "Using default configuration path: $ConfigPath"
-    
+
     # Update the PSBoundParameters to include the ConfigPath
     $PSBoundParameters['ConfigPath'] = $ConfigPath
 }
@@ -96,7 +96,7 @@ function Get-TDDConfiguration {
     .DESCRIPTION
         Loads the TDDConfig.psd1 file, validates required settings, allows overriding settings,
         merges default settings with user-provided settings, and returns a complete configuration object.
-        
+
         Uses common utility functions from Common-Functions.ps1 for consistent functionality
         across the TDD workflow scripts.
     .PARAMETER ConfigPath
@@ -142,13 +142,13 @@ function Get-TDDConfiguration {
         AssignPremiumPlan = $true
         DNS = "8.8.8.8"
         UpdateHosts = $true
-        
+
         # Path Settings
         SourcePaths = @{
             App = ".\app"  # Main app source path
             Test = ".\test"  # Test app source path
         }
-        
+
         OutputPaths = @{
             Build = ".\build"  # Base build directory
             AppSource = ".\build\app"  # Prepared app source
@@ -156,7 +156,7 @@ function Get-TDDConfiguration {
             AppOutput = ".\build\output"  # Compiled app output directory
             TestResults = ".\build\testresults"  # Test results directory
         }
-        
+
         # Compilation Settings
         Compilation = @{
             CodeAnalysis = $true  # Enable code analysis during compilation
@@ -168,7 +168,7 @@ function Get-TDDConfiguration {
             EnableUICop = $true  # Enable UI rules
             FailOnTestCodeIssues = $true  # Fail if test code has issues
         }
-        
+
         # Publishing Settings
         Publishing = @{
             Scope = "tenant"  # Options: "tenant", "global"
@@ -178,7 +178,7 @@ function Get-TDDConfiguration {
             InstallDependencies = $true  # Automatically install dependencies
             InstallOnlyReferencedApps = $true  # Install only referenced apps
         }
-        
+
         # Test Settings
         TestSettings = @{
             DefaultTimeout = 600  # Default timeout for test execution (seconds)
@@ -190,7 +190,7 @@ function Get-TDDConfiguration {
             DisableNameValidation = $false  # Disable test name validation
             RetryCount = 0  # Number of retries for failed tests
         }
-        
+
         # Watch Mode Settings
         WatchSettings = @{
             Enabled = $true  # Enable watch mode
@@ -199,7 +199,7 @@ function Get-TDDConfiguration {
             AutoRunTests = $true  # Auto-run tests after publishing
             IncludeSubfolders = $true  # Watch subfolders
         }
-        
+
         # TDD Session Settings
         TDDSession = @{
             RememberLastRun = $true  # Remember last test run
@@ -208,7 +208,7 @@ function Get-TDDConfiguration {
             ShowPassedTests = $true  # Show passed tests in results
             DetailLevel = "Detailed"  # Result detail level (Basic, Detailed, Verbose)
         }
-        
+
         # Script Behavior Settings
         ScriptSettings = @{
             VerboseOutput = $true  # Enable verbose output
@@ -216,6 +216,7 @@ function Get-TDDConfiguration {
             WarningActionPreference = "Continue"  # Default warning action
             InformationPreference = "Continue"  # Default information action
             ProgressPreference = "SilentlyContinue"  # Default progress preference
+            SuppressBcContainerHelperVerbose = $true  # Suppress verbose output from BcContainerHelper module
         }
     }
 
@@ -228,10 +229,10 @@ function Get-TDDConfiguration {
         if (-not [string]::IsNullOrWhiteSpace($ConfigPath) -and (Test-Path -Path $ConfigPath -PathType Leaf)) {
             Write-InfoMessage "Loading configuration from $ConfigPath..."
             $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
-            
+
             # Merge with default configuration (imported config takes precedence)
             $config = Merge-Hashtables -BaseTable $config -OverrideTable $importedConfig
-            
+
             Write-InfoMessage "Configuration loaded successfully."
         } else {
             Write-WarningMessage "Configuration file not found at $ConfigPath. Using default values."

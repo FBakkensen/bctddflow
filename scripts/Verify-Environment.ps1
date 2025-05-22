@@ -137,7 +137,13 @@ function Test-TDDEnvironment {
     # Check 1: Verify BcContainerHelper module is installed and try to import it
     Write-InfoMessage "Checking if BcContainerHelper module is installed..."
 
-    $bcContainerHelperAvailable = Import-BcContainerHelperModule
+    # Check if we should suppress verbose output from BcContainerHelper
+    $suppressVerbose = $false
+    if ($config.ScriptSettings -and $config.ScriptSettings.SuppressBcContainerHelperVerbose) {
+        $suppressVerbose = $config.ScriptSettings.SuppressBcContainerHelperVerbose
+    }
+
+    $bcContainerHelperAvailable = Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose
 
     if (-not $bcContainerHelperAvailable) {
         Write-ErrorMessage "BcContainerHelper module is not installed or cannot be imported." "Install the module by running: Install-Module BcContainerHelper -Force"

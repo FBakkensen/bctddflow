@@ -541,7 +541,7 @@ Include parameter validation and help information.
 - Task 4.9 (Create Script Template Using Common-Functions.ps1)
 - Task 8 (Create Test Runner Script)
 
-### 10. [ ] Create TDD Workflow Script
+### 10. [x] Create TDD Workflow Script
 
 **Prompt:**
 ```
@@ -552,6 +552,8 @@ Create a PowerShell script named 'Start-TDDWorkflow.ps1' in the scripts folder t
 4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
 5. Verifies the container exists and is running using structured Docker output formats
 6. Provides a complete workflow that:
+   - Prepares the app source for compilation
+   - Prepares the test app source for compilation
    - Compiles the main application using alc.exe on the host machine
    - Compiles the test application using alc.exe on the host machine
    - Deploys the compiled app packages to the Business Central container

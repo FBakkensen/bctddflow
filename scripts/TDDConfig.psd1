@@ -12,13 +12,13 @@
     AssignPremiumPlan = $true
     DNS = "8.8.8.8"
     UpdateHosts = $true
-    
+
     # Path Settings
     SourcePaths = @{
         App = ".\app"  # Main app source path
         Test = ".\test"  # Test app source path
     }
-    
+
     OutputPaths = @{
         Build = ".\build"  # Base build directory
         AppSource = ".\build\app"  # Prepared app source
@@ -26,7 +26,7 @@
         AppOutput = ".\build\output"  # Compiled app output directory
         TestResults = ".\build\testresults"  # Test results directory
     }
-    
+
     # Compilation Settings
     Compilation = @{
         CodeAnalysis = $true  # Enable code analysis during compilation
@@ -38,7 +38,7 @@
         EnableUICop = $true  # Enable UI rules
         FailOnTestCodeIssues = $true  # Fail if test code has issues
     }
-    
+
     # Publishing Settings
     Publishing = @{
         Scope = "tenant"  # Options: "tenant", "global"
@@ -48,7 +48,7 @@
         InstallDependencies = $true  # Automatically install dependencies
         InstallOnlyReferencedApps = $true  # Install only referenced apps
     }
-    
+
     # Test Settings
     TestSettings = @{
         DefaultTimeout = 600  # Default timeout for test execution (seconds)
@@ -60,7 +60,7 @@
         DisableNameValidation = $false  # Disable test name validation
         RetryCount = 0  # Number of retries for failed tests
     }
-    
+
     # Watch Mode Settings
     WatchSettings = @{
         Enabled = $true  # Enable watch mode
@@ -69,7 +69,7 @@
         AutoRunTests = $true  # Auto-run tests after publishing
         IncludeSubfolders = $true  # Watch subfolders
     }
-    
+
     # TDD Session Settings
     TDDSession = @{
         RememberLastRun = $true  # Remember last test run
@@ -78,7 +78,7 @@
         ShowPassedTests = $true  # Show passed tests in results
         DetailLevel = "Detailed"  # Result detail level (Basic, Detailed, Verbose)
     }
-    
+
     # Script Behavior Settings
     ScriptSettings = @{
         VerboseOutput = $true  # Enable verbose output
@@ -86,5 +86,6 @@
         WarningActionPreference = "Continue"  # Default warning action
         InformationPreference = "Continue"  # Default information action
         ProgressPreference = "SilentlyContinue"  # Default progress preference
+        SuppressBcContainerHelperVerbose = $true  # Suppress verbose output from BcContainerHelper module
     }
 }

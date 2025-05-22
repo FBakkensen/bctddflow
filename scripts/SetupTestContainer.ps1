@@ -175,7 +175,13 @@ if (-not $PSBoundParameters.ContainsKey('AssignPremiumPlan')) {
 }
 
 # Ensure BcContainerHelper is available
-$bcContainerHelperAvailable = Import-BcContainerHelperModule
+# Check if we should suppress verbose output from BcContainerHelper
+$suppressVerbose = $false
+if ($config.ScriptSettings -and $config.ScriptSettings.SuppressBcContainerHelperVerbose) {
+    $suppressVerbose = $config.ScriptSettings.SuppressBcContainerHelperVerbose
+}
+
+$bcContainerHelperAvailable = Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose
 if (-not $bcContainerHelperAvailable) {
     # Error message is already displayed by Import-BcContainerHelperModule
     exit 1

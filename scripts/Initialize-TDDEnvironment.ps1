@@ -224,13 +224,19 @@ function Initialize-BCTDDEnvironment {
     }
 
     # Step 2: Check if BcContainerHelper module is available and try to import it
-    $bcContainerHelperAvailable = Import-BcContainerHelperModule
+    # Check if we should suppress verbose output from BcContainerHelper
+    $suppressVerbose = $false
+    if ($config.ScriptSettings -and $config.ScriptSettings.SuppressBcContainerHelperVerbose) {
+        $suppressVerbose = $config.ScriptSettings.SuppressBcContainerHelperVerbose
+    }
+
+    $bcContainerHelperAvailable = Import-BcContainerHelperModule -SuppressVerbose:$suppressVerbose
 
     if (-not $bcContainerHelperAvailable) {
         Write-ErrorMessage "BcContainerHelper module is not installed or cannot be imported." "Installing BcContainerHelper module..."
         try {
             Install-Module BcContainerHelper -Force
-            $bcContainerHelperAvailable = Import-BcContainerHelperModule -Force
+            $bcContainerHelperAvailable = Import-BcContainerHelperModule -Force -SuppressVerbose:$suppressVerbose
 
             if ($bcContainerHelperAvailable) {
                 Write-SuccessMessage "BcContainerHelper module installed and imported successfully."
