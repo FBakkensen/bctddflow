@@ -256,6 +256,12 @@ $containerParams = @{
     assignPremiumPlan = $AssignPremiumPlan
 }
 
+# Add shared folders for test results
+$testResultsDir = Resolve-TDDPath -Path $config.OutputPaths.TestResults -CreateIfNotExists
+Write-InfoMessage "Setting up shared folder for test results: $testResultsDir"
+# Use the correct format for BcContainerHelper's additionalParameters
+$containerParams['additionalParameters'] = @("-v ""$($testResultsDir):C:\TestResults""")
+
 # Add DNS if specified in configuration
 if ($config.DNS) {
     $containerParams['dns'] = $config.DNS

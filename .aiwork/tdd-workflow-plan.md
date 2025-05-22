@@ -475,7 +475,7 @@ Include parameter validation and help information.
 - Task 4.9 (Create Script Template Using Common-Functions.ps1)
 - Task 6 (Create App Compilation Script)
 
-### 8. [ ] Create Test Runner Script
+### 8. [x] Create Test Runner Script
 
 **Prompt:**
 ```
