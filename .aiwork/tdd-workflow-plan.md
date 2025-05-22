@@ -68,6 +68,70 @@ Include detailed comments explaining each setting and available options.
 - Check that comments explain each setting clearly
 - Test importing the file using `Import-PowerShellDataFile -Path ".\scripts\TDDConfig.psd1"`
 
+### 3.1. [ ] Update Verify-Environment Script to Use Configuration
+
+**Prompt:**
+```
+Modify the 'Verify-Environment.ps1' script in the scripts folder to:
+1. Import and use settings from the TDDConfig.psd1 file
+2. Use the ContainerName setting from the configuration instead of hardcoded 'bctest'
+3. Add a parameter to override the configuration file path
+4. Maintain backward compatibility by using default values if configuration cannot be loaded
+5. Update error messages to reference the configuration file when appropriate
+6. Add comments explaining the configuration integration
+```
+
+**Verification:**
+- Run `.\scripts\Verify-Environment.ps1` (should use container name from config)
+- Run `.\scripts\Verify-Environment.ps1 -ConfigPath "custom-config.psd1"` (should use custom config if provided)
+- Verify error messages reference the configuration file when appropriate
+- Check that the script works even if the configuration file is missing (using defaults)
+- Confirm the script correctly uses the container name from configuration
+
+### 3.2. [ ] Update SetupTestContainer Script to Use Configuration
+
+**Prompt:**
+```
+Modify the 'SetupTestContainer.ps1' script in the scripts folder to:
+1. Import and use settings from the TDDConfig.psd1 file
+2. Use environment settings from configuration (ContainerName, ArtifactUrl, Auth, etc.)
+3. Add a parameter to override the configuration file path
+4. Apply container creation options from configuration (MemoryLimit, Accept_Eula, etc.)
+5. Use test toolkit settings from configuration (IncludeTestToolkit, IncludePerformanceToolkit)
+6. Maintain backward compatibility by using default values if configuration cannot be loaded
+7. Add comments explaining the configuration integration
+```
+
+**Verification:**
+- Run `.\scripts\SetupTestContainer.ps1` (should use settings from config)
+- Run `.\scripts\SetupTestContainer.ps1 -ConfigPath "custom-config.psd1"` (should use custom config if provided)
+- Verify container is created with settings from configuration
+- Check that the script works even if the configuration file is missing (using defaults)
+- Confirm container properties match those specified in the configuration
+
+### 3.3. [ ] Update Initialize-TDDEnvironment Script to Use Configuration
+
+**Prompt:**
+```
+Modify the 'Initialize-TDDEnvironment.ps1' script in the scripts folder to:
+1. Import and use settings from the TDDConfig.psd1 file
+2. Use environment settings from configuration (ContainerName, ArtifactUrl, Auth, etc.)
+3. Add a parameter to override the configuration file path
+4. Pass configuration settings to SetupTestContainer.ps1 when creating the container
+5. Set environment variables based on configuration settings
+6. Maintain backward compatibility by using default values if configuration cannot be loaded
+7. Add comments explaining the configuration integration
+8. Update output messages to include configuration information
+```
+
+**Verification:**
+- Run `.\scripts\Initialize-TDDEnvironment.ps1` (should use settings from config)
+- Run `.\scripts\Initialize-TDDEnvironment.ps1 -ConfigPath "custom-config.psd1"` (should use custom config if provided)
+- Verify container is created with settings from configuration
+- Check that environment variables are set based on configuration
+- Confirm the script works even if the configuration file is missing (using defaults)
+- Verify output messages include configuration information
+
 ### 4. [ ] Create Configuration Helper Script
 
 **Prompt:**
