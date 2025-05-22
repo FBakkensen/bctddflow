@@ -209,7 +209,7 @@ Refactor the 'SetupTestContainer.ps1' script in the scripts folder to:
 - Check that the script passes the ConfigPath parameter correctly
 - Confirm the script uses settings from the configuration
 
-### 4.4. [ ] Create Common Functions Script
+### 4.4. [x] Create Common Functions Script
 
 **Prompt:**
 ```
