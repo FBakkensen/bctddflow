@@ -1,1 +1,8 @@
 # Powershell
+- PowerShell scripts should NEVER be executed using the execute_command tool from the desktop-commander MCP.
+- Users should ALWAYS use the Terminal application directly to execute PowerShell scripts.
+- Using Desktop Commander to execute PowerShell scripts can lead to:
+    - Unpredictable script execution behavior
+    - Security context issues
+    - Incomplete error reporting
+    -Potential system instability
