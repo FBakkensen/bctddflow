@@ -109,7 +109,7 @@ Modify the 'SetupTestContainer.ps1' script in the scripts folder to:
 - Check that the script works even if the configuration file is missing (using defaults)
 - Confirm container properties match those specified in the configuration
 
-### 3.3. [ ] Update Initialize-TDDEnvironment Script to Use Configuration
+### 3.3. [x] Update Initialize-TDDEnvironment Script to Use Configuration
 
 **Prompt:**
 ```

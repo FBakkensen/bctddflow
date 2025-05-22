@@ -4,29 +4,42 @@
 .DESCRIPTION
     This script sets up the environment for Business Central TDD workflow:
     1. Calls Verify-Environment.ps1 to ensure prerequisites are met
-    2. If the 'bctest' container doesn't exist, creates it with appropriate settings
+    2. If the container doesn't exist, creates it with appropriate settings
     3. If the container exists but isn't running, starts it
     4. Sets up any necessary environment variables for the TDD workflow
+    
+    The script uses settings from the TDDConfig.psd1 file, including container name,
+    artifact URL, authentication method, and other container settings.
+    If the configuration file cannot be loaded, default values are used.
 .PARAMETER ContainerName
-    The name of the Business Central container to initialize. Default is 'bctest'.
+    The name of the Business Central container to initialize. Default is from configuration or 'bctest'.
 .PARAMETER ImageName
-    The Business Central Docker image to use. Default is 'mcr.microsoft.com/businesscentral:latest'.
-# License file parameter removed as it's no longer needed for BC container creation
+    The Business Central Docker image to use. If not provided, latest sandbox artifact will be used.
 .PARAMETER Auth
-    Authentication method for the container. Valid options are 'Windows', 'UserPassword', or 'NavUserPassword'. Default is 'NavUserPassword'.
+    Authentication method for the container. Valid options are 'Windows', 'UserPassword', or 'NavUserPassword'. 
+    Default is from configuration or 'NavUserPassword'.
 .PARAMETER Credential
-    Credentials for the container admin user. If not provided, default credentials (admin/P@ssw0rd) will be used. These credentials are forwarded to the SetupTestContainer.ps1 script.
+    Credentials for the container admin user. If not provided, default credentials (admin/P@ssw0rd) will be used. 
+    These credentials are forwarded to the SetupTestContainer.ps1 script.
 .PARAMETER MemoryLimit
-    Memory limit for the container. Default is '8G'.
+    Memory limit for the container. Default is from configuration or '8G'.
 .PARAMETER Accept_Eula
-    Whether to accept the EULA. Default is $true.
+    Whether to accept the EULA. Default is from configuration or $true.
 .PARAMETER Accept_Outdated
-    Whether to accept outdated images. Default is $true.
+    Whether to accept outdated images. Default is from configuration or $true.
+.PARAMETER ConfigPath
+    Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
+.PARAMETER SkipVerification
+    Whether to skip the environment verification step. Default is $false.
 .EXAMPLE
     .\Initialize-TDDEnvironment.ps1
+    # Uses settings from the default configuration file
 .EXAMPLE
-    .\Initialize-TDDEnvironment.ps1 -ContainerName "mytest" -ImageName "mcr.microsoft.com/businesscentral:us"
-# License file example removed as it's no longer needed for BC container creation
+    .\Initialize-TDDEnvironment.ps1 -ContainerName "mytest" -Auth "Windows"
+    # Overrides configuration settings with provided parameters
+.EXAMPLE
+    .\Initialize-TDDEnvironment.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
+    # Uses a custom configuration file
 .NOTES
     This script is part of the Business Central TDD workflow.
 #>
@@ -34,32 +47,40 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ContainerName = "bctest",
+    [string]$ContainerName,
 
     [Parameter(Mandatory = $false)]
     [string]$ImageName = "",
 
-    # License file parameter removed as it's no longer needed for BC container creation
-
     [Parameter(Mandatory = $false)]
     [ValidateSet("Windows", "UserPassword", "NavUserPassword")]
-    [string]$Auth = "NavUserPassword",
+    [string]$Auth,
 
     [Parameter(Mandatory = $false)]
     [System.Management.Automation.PSCredential]$Credential,
 
     [Parameter(Mandatory = $false)]
-    [string]$MemoryLimit = "8G",
+    [string]$MemoryLimit,
 
     [Parameter(Mandatory = $false)]
-    [bool]$Accept_Eula = $true,
+    [bool]$Accept_Eula,
 
     [Parameter(Mandatory = $false)]
-    [bool]$Accept_Outdated = $true,
+    [bool]$Accept_Outdated,
     
     [Parameter(Mandatory = $false)]
-    [bool]$SkipVerification = $false
+    [bool]$SkipVerification = $false,
+    
+    [Parameter(Mandatory = $false)]
+    [string]$ConfigPath
 )
+
+# Get the script path and set default config path if not provided
+if (-not $PSBoundParameters.ContainsKey('ConfigPath')) {
+    $scriptPath = $MyInvocation.MyCommand.Path
+    $scriptDir = Split-Path -Parent $scriptPath
+    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+}
 
 # Fail fast on any terminating / non-terminating error
 $ErrorActionPreference = 'Stop'
@@ -69,6 +90,54 @@ $WarningPreference     = 'Continue'
 
 # Define the user module path for BcContainerHelper
 $userModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath "PowerShell\Modules\BcContainerHelper"
+
+# Function to import configuration from TDDConfig.psd1
+function Import-TDDConfiguration {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$ConfigPath
+    )
+
+    # Default configuration values
+    $defaultConfig = @{
+        ContainerName = "bctest"
+        Auth = "NavUserPassword"
+        MemoryLimit = "8G"
+        Accept_Eula = $true
+        Accept_Outdated = $true
+        ScriptSettings = @{
+            ErrorActionPreference = "Stop"
+            VerbosePreference = "Continue"
+            InformationPreference = "Continue"
+            WarningPreference = "Continue"
+        }
+    }
+
+    # Try to import configuration from file
+    try {
+        if (Test-Path -Path $ConfigPath) {
+            Write-InfoMessage "Loading configuration from $ConfigPath..."
+            $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
+
+            # Merge with default configuration (imported config takes precedence)
+            $config = $defaultConfig.Clone()
+            foreach ($key in $importedConfig.Keys) {
+                $config[$key] = $importedConfig[$key]
+            }
+
+            Write-InfoMessage "Configuration loaded successfully."
+            return $config
+        } else {
+            Write-InfoMessage "Configuration file not found at $ConfigPath. Using default values."
+            return $defaultConfig
+        }
+    } catch {
+        Write-InfoMessage "Error loading configuration from $ConfigPath`: $($_.Exception.Message)"
+        Write-InfoMessage "Using default configuration values."
+        return $defaultConfig
+    }
+}
 
 # Function to check if BcContainerHelper is available and import it if possible
 function Import-BcContainerHelperIfAvailable {
@@ -161,7 +230,50 @@ function Initialize-BCTDDEnvironment {
     [CmdletBinding()]
     param()
 
+    # Load configuration
+    $config = Import-TDDConfiguration -ConfigPath $ConfigPath
+
+    # Apply script settings from configuration if available
+    if ($config.ScriptSettings) {
+        if ($config.ScriptSettings.ErrorActionPreference) {
+            $ErrorActionPreference = $config.ScriptSettings.ErrorActionPreference
+        }
+        if ($config.ScriptSettings.VerbosePreference) {
+            $VerbosePreference = $config.ScriptSettings.VerbosePreference
+        }
+        if ($config.ScriptSettings.InformationPreference) {
+            $InformationPreference = $config.ScriptSettings.InformationPreference
+        }
+        if ($config.ScriptSettings.WarningPreference) {
+            $WarningPreference = $config.ScriptSettings.WarningPreference
+        }
+    }
+
+    # Apply configuration values if parameters are not explicitly provided
+    if (-not $PSBoundParameters.ContainsKey('ContainerName')) {
+        $script:ContainerName = $config.ContainerName
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('Auth')) {
+        $script:Auth = $config.Auth
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('MemoryLimit')) {
+        $script:MemoryLimit = $config.MemoryLimit
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('Accept_Eula')) {
+        $script:Accept_Eula = $config.Accept_Eula
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('Accept_Outdated')) {
+        $script:Accept_Outdated = $config.Accept_Outdated
+    }
+
     Write-InfoMessage "Initializing environment for Business Central TDD workflow..."
+    Write-InfoMessage "Using configuration from: $ConfigPath"
+    $containerNameSource = if ($PSBoundParameters.ContainsKey('ContainerName')) { 'parameter' } else { 'configuration' }
+    Write-InfoMessage "Container Name: $ContainerName (from $containerNameSource)"
 
     # Step 1: Verify environment prerequisites (unless skipped)
     if (-not $SkipVerification) {
@@ -178,7 +290,8 @@ function Initialize-BCTDDEnvironment {
             # We'll handle the container creation/startup if needed
             # Use try-catch to properly handle exit codes from the script
             try {
-                & $verifyScriptPath -ErrorAction Stop
+                # Pass the configuration path to the verification script
+                & $verifyScriptPath -ConfigPath $ConfigPath -ErrorAction Stop
                 $verifyResult = $true  # If we get here, the script succeeded
             }
             catch {
@@ -263,6 +376,8 @@ function Initialize-BCTDDEnvironment {
         $containerExists = $false
         $containerRunning = $false
     }
+    
+    Write-InfoMessage "Container status: Exists=$containerExists, Running=$containerRunning"
 
     # Handle container creation or startup
     if (-not $containerExists) {
@@ -275,6 +390,7 @@ function Initialize-BCTDDEnvironment {
             MemoryLimit = $MemoryLimit
             Accept_Eula = $Accept_Eula
             Accept_Outdated = $Accept_Outdated
+            ConfigPath = $ConfigPath  # Pass the configuration path to SetupTestContainer.ps1
         }
 
         # Add ImageName if provided
@@ -294,6 +410,15 @@ function Initialize-BCTDDEnvironment {
         if (-not (Test-Path -Path $setupScriptPath)) {
             Write-ErrorMessage "SetupTestContainer.ps1 script not found at path: $setupScriptPath"
             return $false
+        }
+        
+        Write-InfoMessage "Setup parameters for container creation:"
+        foreach ($key in $setupParams.Keys) {
+            if ($key -ne "Credential" -and $key -ne "Password") {  # Don't log sensitive information
+                Write-InfoMessage "  $key = $($setupParams[$key])"
+            } else {
+                Write-InfoMessage "  $key = [SECURED]"
+            }
         }
 
         try {
@@ -359,7 +484,44 @@ function Initialize-BCTDDEnvironment {
     $env:BC_CONTAINER_NAME = $ContainerName
     $env:BC_CONTAINER_IMAGE = $ImageName
     
+    # Set additional environment variables from configuration
+    $env:BC_AUTH_METHOD = $Auth
+    $env:BC_CONFIG_PATH = $ConfigPath
+    
+    # Set path variables from configuration if available
+    if ($config.SourcePaths) {
+        if ($config.SourcePaths.App) {
+            $env:BC_APP_SOURCE_PATH = $config.SourcePaths.App
+        }
+        if ($config.SourcePaths.Test) {
+            $env:BC_TEST_SOURCE_PATH = $config.SourcePaths.Test
+        }
+    }
+    
+    if ($config.OutputPaths) {
+        if ($config.OutputPaths.Build) {
+            $env:BC_BUILD_PATH = $config.OutputPaths.Build
+        }
+        if ($config.OutputPaths.AppOutput) {
+            $env:BC_APP_OUTPUT_PATH = $config.OutputPaths.AppOutput
+        }
+        if ($config.OutputPaths.TestResults) {
+            $env:BC_TEST_RESULTS_PATH = $config.OutputPaths.TestResults
+        }
+    }
+    
     Write-SuccessMessage "Environment variables set up successfully."
+    Write-InfoMessage "Environment variables set:"
+    Write-InfoMessage "  BC_CONTAINER_NAME = $env:BC_CONTAINER_NAME"
+    Write-InfoMessage "  BC_CONTAINER_IMAGE = $env:BC_CONTAINER_IMAGE"
+    Write-InfoMessage "  BC_AUTH_METHOD = $env:BC_AUTH_METHOD"
+    Write-InfoMessage "  BC_CONFIG_PATH = $env:BC_CONFIG_PATH"
+    
+    if ($env:BC_APP_SOURCE_PATH) { Write-InfoMessage "  BC_APP_SOURCE_PATH = $env:BC_APP_SOURCE_PATH" }
+    if ($env:BC_TEST_SOURCE_PATH) { Write-InfoMessage "  BC_TEST_SOURCE_PATH = $env:BC_TEST_SOURCE_PATH" }
+    if ($env:BC_BUILD_PATH) { Write-InfoMessage "  BC_BUILD_PATH = $env:BC_BUILD_PATH" }
+    if ($env:BC_APP_OUTPUT_PATH) { Write-InfoMessage "  BC_APP_OUTPUT_PATH = $env:BC_APP_OUTPUT_PATH" }
+    if ($env:BC_TEST_RESULTS_PATH) { Write-InfoMessage "  BC_TEST_RESULTS_PATH = $env:BC_TEST_RESULTS_PATH" }
 
     # Step 6: Display container information
     if ($containerRunning) {
@@ -373,6 +535,7 @@ function Initialize-BCTDDEnvironment {
                 Write-Host "  IP Address: $containerIP" -ForegroundColor White
                 Write-Host "  Auth: $($script:containerDetails.Auth)" -ForegroundColor White
                 Write-Host "  Status: Running" -ForegroundColor Green
+                Write-Host "  Configuration: $($script:containerDetails.ConfigPath) (Used: $($script:containerDetails.ConfigUsed))" -ForegroundColor White
                 
                 Write-Host "`nAccess Information:" -ForegroundColor Cyan
                 Write-Host "  Web Client: $($script:containerDetails.WebClientUrl)" -ForegroundColor White
@@ -389,6 +552,8 @@ function Initialize-BCTDDEnvironment {
                 Write-Host "  Image: $ImageName" -ForegroundColor White
                 Write-Host "  IP Address: $containerIP" -ForegroundColor White
                 Write-Host "  Status: Running" -ForegroundColor Green
+                Write-Host "  Configuration: $ConfigPath (Used: $(Test-Path -Path $ConfigPath))" -ForegroundColor White
+                Write-Host "  Auth: $Auth" -ForegroundColor White
                 
                 Write-Host "`nAccess Information:" -ForegroundColor Cyan
                 Write-Host "  Web Client: http://$containerIP/BC" -ForegroundColor White
@@ -397,6 +562,7 @@ function Initialize-BCTDDEnvironment {
             }
             
             Write-Host "`nEnvironment is ready for Business Central TDD workflow!" -ForegroundColor Green
+            Write-Host "Configuration used: $ConfigPath" -ForegroundColor Green
         }
         catch {
             Write-ErrorMessage "Failed to retrieve container information: $_"
