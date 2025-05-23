@@ -4,16 +4,21 @@ codeunit 50097 "Test Setup"
     // It is designed to be called from test codeunits to initialize
     // and clean up the test environment
 
+    var
+        LibrarySales: Codeunit "Library - Sales";
+        LibraryInventory: Codeunit "Library - Inventory";
+        IsInitialized: Boolean;
+
     // Initialize the test environment
     procedure Initialize()
-    var
-        TestSuite: Codeunit "Test Suite";
     begin
-        // Initialize the test suite
-        TestSuite.Initialize();
+        if IsInitialized then
+            exit;
 
-        // Perform additional setup as needed
+        // Perform initialization for all tests
         SetupTestData();
+
+        IsInitialized := true;
     end;
 
     // Set up test data
@@ -25,14 +30,14 @@ codeunit 50097 "Test Setup"
 
     // Clean up the test environment
     procedure Teardown()
-    var
-        TestSuite: Codeunit "Test Suite";
     begin
+        if not IsInitialized then
+            exit;
+
         // Clean up any test data
         CleanupTestData();
 
-        // Tear down the test suite
-        TestSuite.Teardown();
+        IsInitialized := false;
     end;
 
     // Clean up test data
@@ -46,17 +51,17 @@ codeunit 50097 "Test Setup"
     procedure CreateTestCustomer(): Code[20]
     var
         Customer: Record Customer;
-        TestSuite: Codeunit "Test Suite";
     begin
-        exit(TestSuite.CreateTestCustomer(Customer));
+        LibrarySales.CreateCustomer(Customer);
+        exit(Customer."No.");
     end;
 
     // Create a test item
     procedure CreateTestItem(): Code[20]
     var
         Item: Record Item;
-        TestSuite: Codeunit "Test Suite";
     begin
-        exit(TestSuite.CreateTestItem(Item));
+        LibraryInventory.CreateItem(Item);
+        exit(Item."No.");
     end;
 }

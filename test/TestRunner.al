@@ -8,13 +8,13 @@ codeunit 50098 "Test Runner"
 
     trigger OnRun()
     var
-        TestSuite: Codeunit "Test Suite";
+        TestSetup: Codeunit "Test Setup";
         TestCodeunitName: Text;
         TestFunctionName: Text;
         TestTag: Text;
     begin
         // Initialize test environment
-        TestSuite.Initialize();
+        TestSetup.Initialize();
 
         // Get test parameters from caller
         // These would typically be set by the BcContainerHelper framework
