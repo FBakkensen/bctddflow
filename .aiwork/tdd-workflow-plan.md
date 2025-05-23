@@ -669,7 +669,7 @@ The documentation should be comprehensive but easy to follow.
 - Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
 - Task 5 through 12 (All script creation tasks)
 
-### 13. [ ] Update README.md
+### 13. [x] Update README.md
 
 **Prompt:**
 ```

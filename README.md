@@ -1,25 +1,159 @@
-# AL-Go Per Tenant Extension Template
+# Business Central TDD Workflow
 
 ## Overview
 
-This is a template repository for managing AppSource Apps for Business Central using the AL-Go framework. Key features include:
+This repository provides a Test-Driven Development (TDD) workflow for Business Central using Docker. The workflow enables developers to follow TDD principles when developing Business Central extensions by providing a structured approach to:
 
-- **GitHub Actions Workflows** for CI/CD, pull requests, and app creation
-- **PowerPlatform Integration** with workflows for building, deploying, and syncing changes
-- **Development Environment Setup** with scripts for both cloud and local environments
-- **App Management** tools for creating new apps, test apps, and adding existing apps
-- **Build Pipeline** using reusable workflows like `_BuildALGoProject.yaml`
+1. Implementing test code first
+2. Implementing application code to satisfy the tests
+3. Running tests against the implemented code
+4. Responding to test results and making necessary adjustments
+5. Iterating through the process until the feature is fully implemented
 
-The repository follows Microsoft's AL-Go framework (v7.1) for Business Central app development, providing automation for building, testing, and deploying Business Central extensions. It's designed as a template for per-tenant extensions with sample code included.
+Key features include:
+
+- **Docker Integration** with automated container setup and management
+- **Host-Based Compilation** using alc.exe on the host machine (not in the container)
+- **Streamlined Deployment** of compiled apps to the Business Central container
+- **Test Execution and Reporting** with structured test results
+- **Interactive TDD Session** with a menu-driven interface
+- **Centralized Configuration** for customizing the workflow
 
 ## Getting Started
 
-To get started with this template repository, follow these steps:
+To get started with the Business Central TDD workflow, follow these steps:
 
-1. **Clone the Repository**: Clone this repository to your local machine using `git clone https://github.com/your-repo.git`.
-2. **Customize Settings**: Modify the AL-Go settings in the repository to match your project's requirements.
-3. **Set Up Workflows**: Configure the GitHub Actions workflows according to your needs.
-4. **Start Developing**: Begin developing your Business Central extensions using the provided templates and workflows.
+1. **Clone the Repository**: Clone this repository to your local machine.
+2. **Install Prerequisites**: Ensure Docker Desktop is installed and running, and PowerShell 5.1 or later is available.
+3. **Initialize Environment**: Run `.\scripts\Initialize-TDDEnvironment.ps1` to set up the Business Central container.
+4. **Start TDD Session**: Run `.\scripts\Start-TDDSession.ps1` for an interactive TDD workflow experience.
+5. **Write Tests First**: Create test codeunits in the test app that define the expected behavior.
+6. **Implement Features**: Develop the application code to make the tests pass.
+7. **Run Tests**: Execute tests to verify your implementation meets the requirements.
+
+## TDD Workflow
+
+The Business Central TDD workflow consists of the following steps:
+
+1. **Prepare Source Code**: Copy source files from the main and test apps to build directories
+2. **Compile Applications**: Compile the main and test applications using alc.exe on the host machine
+3. **Deploy Applications**: Deploy the compiled app packages (.app files) to the Business Central container
+4. **Run Tests**: Execute tests from the test app in the container
+5. **View Results**: Analyze test results to determine if the implementation meets requirements
+
+### Available Scripts
+
+The following scripts are available to support the TDD workflow:
+
+- **Initialize-TDDEnvironment.ps1**: Sets up the environment for the TDD workflow
+- **Prepare-AppSource.ps1**: Prepares the source code for compilation
+- **Compile-App.ps1**: Compiles the app using alc.exe on the host machine
+- **Deploy-App.ps1**: Deploys the compiled app to the Business Central container
+- **Run-Tests.ps1**: Runs tests in the Business Central container
+- **View-TestResults.ps1**: Displays test results in a readable format
+- **Start-TDDWorkflow.ps1**: Orchestrates the complete TDD workflow
+- **Start-TDDSession.ps1**: Provides an interactive menu-driven interface for the TDD workflow
+
+For detailed documentation on each script, including parameters and examples, see the [TDD-Workflow.md](TDD-Workflow.md) file.
+
+### Quick Start Guide
+
+To quickly get started with TDD in Business Central:
+
+```powershell
+# 1. Initialize environment
+.\scripts\Initialize-TDDEnvironment.ps1
+
+# 2. Start an interactive TDD session
+.\scripts\Start-TDDSession.ps1
+
+# Or run the complete workflow at once
+.\scripts\Start-TDDWorkflow.ps1
+```
+
+## Implementation Details
+
+### Centralized Configuration Management
+
+The TDD workflow uses a centralized configuration approach with the following components:
+
+- **TDDConfig.psd1**: A PowerShell Data File that contains all configuration settings
+- **Get-TDDConfiguration.ps1**: A script that loads, validates, and merges configuration settings
+- **Configuration Override**: All scripts accept a `-ConfigPath` parameter to use a custom configuration file
+- **Parameter Override**: Scripts allow overriding specific configuration settings via parameters
+
+This approach provides several benefits:
+
+- **Consistency**: All scripts use the same configuration settings
+- **Flexibility**: Configuration can be customized without modifying scripts
+- **Maintainability**: Configuration changes are made in one place
+- **Validation**: Configuration is validated to ensure required settings are present
+
+Example configuration usage:
+
+```powershell
+# Load default configuration
+$config = .\scripts\Get-TDDConfiguration.ps1
+
+# Override specific settings
+$config = .\scripts\Get-TDDConfiguration.ps1 -OverrideSettings @{
+    ContainerName = "mycontainer"
+    Auth = "Windows"
+}
+```
+
+### Error Handling Practices
+
+All scripts in the TDD workflow use structured error handling with the following practices:
+
+- **Explicit Error Preferences**: Set `$ErrorActionPreference = 'Stop'` to ensure errors aren't swallowed
+- **Try-Catch Blocks**: Use try-catch blocks to handle errors gracefully
+- **Clear Error Messages**: Provide detailed error messages with instructions on how to fix issues
+- **Exit Codes**: Return meaningful exit codes for use in automated workflows
+- **Error Logging**: Log errors with timestamp and context information
+
+### Structured Docker Output Formats
+
+The TDD workflow uses structured Docker output formats for reliable container status checks:
+
+- **JSON Output**: Use `docker inspect --format='{{json .}}' container` instead of parsing CLI text output
+- **Specific Properties**: Extract specific properties using Go templates like `--format='{{.State.Running}}'`
+- **Reliable Parsing**: Parse JSON output instead of using regex on text output
+- **Error Handling**: Handle missing containers and properties gracefully
+
+This approach ensures consistent behavior across different environments and prevents issues with text parsing.
+
+### Business Central Container Operations
+
+The TDD workflow follows a specific pattern for Business Central container operations:
+
+- **BcContainerHelper Module**: Use the BcContainerHelper module for all container operations
+- **Explicit Parameters**: Use explicit parameters instead of hashtables for clarity
+- **Credential Handling**: Use SecureString or PSCredential types for passwords
+- **Error Handling**: Handle container operation errors gracefully
+- **Timeout Management**: Set appropriate timeouts for container operations
+
+### Strongly-Typed Objects
+
+All scripts in the TDD workflow return strongly-typed PSCustomObject results with the following benefits:
+
+- **Tab Completion**: Provides better tab-completion for callers
+- **Type Safety**: Ensures properties have consistent types
+- **Documentation**: Self-documents the return value structure
+- **Pipeline Support**: Enables easy use in PowerShell pipelines
+
+Example return object structure:
+
+```powershell
+[PSCustomObject]@{
+    Success = $true
+    Message = "Operation completed successfully"
+    Data = @{
+        # Operation-specific data
+    }
+    Timestamp = Get-Date
+}
+```
 
 ## PowerShell Scripts Documentation
 
