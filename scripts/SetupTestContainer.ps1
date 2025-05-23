@@ -29,8 +29,7 @@
     This path is passed to Get-TDDConfiguration.ps1 for loading the configuration.
 .PARAMETER Country
     Country version for the Business Central container. Default is from configuration or 'w1'.
-.PARAMETER IncludeTestLibrariesOnly
-    Whether to include only the test libraries. Default is from configuration or $true.
+
 .PARAMETER IncludeTestFrameworkOnly
     Whether to include only the test framework. Default is from configuration or $true.
 .PARAMETER IncludeTestToolkit
@@ -84,8 +83,7 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$Country,
 
-    [Parameter(Mandatory = $false)]
-    [bool]$IncludeTestLibrariesOnly,
+
 
     [Parameter(Mandatory = $false)]
     [bool]$IncludeTestFrameworkOnly,
@@ -167,9 +165,7 @@ if (-not $PSBoundParameters.ContainsKey('Country')) {
     $Country = $config.Country
 }
 
-if (-not $PSBoundParameters.ContainsKey('IncludeTestLibrariesOnly')) {
-    $IncludeTestLibrariesOnly = $config.IncludeTestLibrariesOnly
-}
+
 
 if (-not $PSBoundParameters.ContainsKey('IncludeTestFrameworkOnly')) {
     $IncludeTestFrameworkOnly = $config.IncludeTestFrameworkOnly
@@ -266,7 +262,7 @@ $containerParams = @{
     credential = $credential
     auth = $Auth
     artifactUrl = $artifactUrl
-    includeTestLibrariesOnly = $IncludeTestLibrariesOnly
+
     includeTestFrameworkOnly = $IncludeTestFrameworkOnly
     includeTestToolkit = $IncludeTestToolkit
     assignPremiumPlan = $AssignPremiumPlan
@@ -298,7 +294,6 @@ if (-not [string]::IsNullOrEmpty($MemoryLimit)) {
 Write-InfoMessage "Creating container with the following settings:"
 Write-InfoMessage "  Container Name: $ContainerName"
 Write-InfoMessage "  Auth Method: $Auth"
-Write-InfoMessage "  Include Test Libraries Only: $IncludeTestLibrariesOnly"
 Write-InfoMessage "  Include Test Framework Only: $IncludeTestFrameworkOnly"
 Write-InfoMessage "  Include Test Toolkit: $IncludeTestToolkit"
 Write-InfoMessage "  Assign Premium Plan: $AssignPremiumPlan"
@@ -340,7 +335,6 @@ $result = [PSCustomObject]@{
     Auth                    = $Auth
     ArtifactUrl             = $artifactUrl
     Country                 = $Country
-    IncludeTestLibrariesOnly = $IncludeTestLibrariesOnly
     IncludeTestFrameworkOnly = $IncludeTestFrameworkOnly
     IncludeTestToolkit      = $IncludeTestToolkit
     AssignPremiumPlan       = $AssignPremiumPlan
@@ -358,7 +352,6 @@ Write-InfoMessage "  Configuration File: $ConfigPath (Used: $((Test-PathIsFile -
 Write-InfoMessage "  Container Name: $ContainerName"
 Write-InfoMessage "  Auth Method: $Auth"
 Write-InfoMessage "  Country: $Country"
-Write-InfoMessage "  Include Test Libraries Only: $IncludeTestLibrariesOnly"
 Write-InfoMessage "  Include Test Framework Only: $IncludeTestFrameworkOnly"
 Write-InfoMessage "  Include Test Toolkit: $IncludeTestToolkit"
 Write-InfoMessage "  Web Client URL: $($result.WebClientUrl)"

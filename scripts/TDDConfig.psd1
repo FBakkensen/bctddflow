@@ -7,7 +7,6 @@
     MemoryLimit = "8G"  # Memory limit for the container
     Accept_Eula = $true
     Accept_Outdated = $true
-    IncludeTestLibrariesOnly = $true
     IncludeTestFrameworkOnly = $true
     IncludeTestToolkit = $true
     AssignPremiumPlan = $true
