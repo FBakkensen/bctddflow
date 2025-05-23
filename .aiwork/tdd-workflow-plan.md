@@ -635,53 +635,9 @@ Include detailed help information and usage examples.
 - Task 9 (Create Test Results Viewer Script)
 - Task 10 (Create TDD Workflow Script)
 
-### 12. [ ] Create Watch Mode Script
-
-**Prompt:**
-```
-Create a PowerShell script named 'Watch-Changes.ps1' in the scripts folder that:
-1. Takes parameters for app path, test app path, and container name with defaults from configuration
-2. Uses Get-TDDConfiguration.ps1 to load configuration settings
-3. Uses Common-Functions.ps1 for utility functions
-4. Sets explicit error handling preferences ($ErrorActionPreference = 'Stop')
-5. Verifies the container exists and is running using structured Docker output formats
-6. Uses the specific pattern for Business Central container operations with explicit parameters
-7. Applies watch mode settings from the configuration (interval, auto-publish, auto-run tests)
-8. Watches for changes in the specified directories
-9. When changes are detected, automatically:
-   - Compiles the changed app(s) using alc.exe on the host machine
-   - Deploys the changed app(s) to the container
-   - Runs the tests
-   - Displays the results
-10. Returns strongly-typed [pscustomobject] results for each operation
-11. Continues watching until manually stopped
-Include parameter validation and help information.
-```
-
-**Verification:**
-- Run `.\scripts\Watch-Changes.ps1` (should use default paths from config)
-- Run `.\scripts\Watch-Changes.ps1 -AppPath ".\app" -TestAppPath ".\test"` (should override config)
-- Make a change to a file in the app directory
-- Verify app is automatically compiled, deployed, and tests are run
-- Make a change to a file in the test directory
-- Verify test app is automatically compiled, deployed, and tests are run
-- Check results are displayed correctly
-- Confirm the script uses the centralized configuration management
-- Verify the script returns properly structured objects with results for each operation
-
-**Dependencies:**
-- Task 4.4 (Create Common Functions Script)
-- Task 4.8 (Refactor Get-TDDConfiguration.ps1 to Use Common-Functions.ps1)
-- Task 4.9 (Create Script Template Using Common-Functions.ps1)
-- Task 6 (Create App Compilation Script)
-- Task 7 (Create App Deployment Script)
-- Task 8 (Create Test Runner Script)
-- Task 9 (Create Test Results Viewer Script)
-- Task 10 (Create TDD Workflow Script)
-
 ## Documentation
 
-### 13. [ ] Create Workflow Documentation
+### 12. [ ] Create Workflow Documentation
 
 **Prompt:**
 ```
@@ -713,7 +669,7 @@ The documentation should be comprehensive but easy to follow.
 - Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
 - Task 5 through 12 (All script creation tasks)
 
-### 14. [ ] Update README.md
+### 13. [ ] Update README.md
 
 **Prompt:**
 ```
@@ -746,7 +702,7 @@ The updates should integrate well with the existing README content.
 
 ## Testing and Refinement
 
-### 15. [ ] Create Example Test and Implementation
+### 14. [ ] Create Example Test and Implementation
 
 **Prompt:**
 ```
@@ -779,7 +735,7 @@ The example should be simple but illustrative of the TDD process.
 - Task 4.5 through 4.9 (Refactoring scripts to use Common-Functions.ps1)
 - Task 5 through 12 (All script creation tasks)
 
-### 16. [ ] Perform End-to-End Workflow Test
+### 15. [ ] Perform End-to-End Workflow Test
 
 **Prompt:**
 ```
@@ -823,7 +779,7 @@ Perform an end-to-end test of the TDD workflow and document the results:
 - Task 5 through 12 (All script creation tasks)
 - Task 15 (Create Example Test and Implementation)
 
-### 17. [ ] Refine Scripts Based on Testing
+### 16. [ ] Refine Scripts Based on Testing
 
 **Prompt:**
 ```
@@ -860,7 +816,7 @@ Refine the scripts based on the end-to-end testing:
 
 ## Final Integration
 
-### 18. [ ] Create Master Script
+### 17. [ ] Create Master Script
 
 **Prompt:**
 ```
