@@ -61,18 +61,18 @@ if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhit
 }
 
 # Import Common-Functions.ps1
-$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Common-Functions.ps1"
 if (-not (Test-Path -Path $commonFunctionsPath)) {
     # We can't use Write-ErrorMessage yet as Common-Functions.ps1 isn't loaded
-    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the same folder as Verify-Environment.ps1."
+    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the lib folder relative to Verify-Environment.ps1."
     exit 1
 }
 . $commonFunctionsPath
 
 # Import the Get-TDDConfiguration script
-$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Get-TDDConfiguration.ps1"
 if (-not (Test-Path -Path $getTDDConfigPath)) {
-    Write-ErrorMessage "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" "Make sure the script exists in the same folder as Verify-Environment.ps1."
+    Write-ErrorMessage "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" "Make sure the script exists in the lib folder relative to Verify-Environment.ps1."
     exit 1
 }
 . $getTDDConfigPath
@@ -193,7 +193,7 @@ function Test-TDDEnvironment {
         # Check if BcContainerHelper is available
         if ($bcContainerHelperAvailable) {
             # Call the Initialize-TDDEnvironment.ps1 script to create the container
-            $initScriptPath = Join-Path -Path $scriptDir -ChildPath "Initialize-TDDEnvironment.ps1"
+            $initScriptPath = Join-Path -Path $scriptDir -ChildPath "..\Initialize-TDDEnvironment.ps1"
 
             if (Test-PathIsFile -Path $initScriptPath) {
                 Write-InfoMessage "Calling Initialize-TDDEnvironment.ps1 to create the container..."
@@ -228,7 +228,7 @@ function Test-TDDEnvironment {
                     $script:allChecksPass = $false
                 }
             } else {
-                Write-ErrorMessage "Initialize-TDDEnvironment.ps1 script not found at path: $initScriptPath" "Make sure the script exists in the same folder as Verify-Environment.ps1."
+                Write-ErrorMessage "Initialize-TDDEnvironment.ps1 script not found at path: $initScriptPath" "Make sure the script exists in the scripts root folder relative to Verify-Environment.ps1."
                 $script:allChecksPass = $false
             }
         } else {

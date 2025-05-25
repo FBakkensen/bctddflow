@@ -78,7 +78,7 @@ param(
     [bool]$Accept_Outdated,
 
     [Parameter(Mandatory = $false)]
-    [string]$ConfigPath = (Join-Path -Path $PSScriptRoot -ChildPath "TDDConfig.psd1"),
+    [string]$ConfigPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\config\TDDConfig.psd1"),
 
     [Parameter(Mandatory = $false)]
     [string]$Country,
@@ -98,11 +98,11 @@ param(
 # Dot-source the Common-Functions.ps1 script to import common utility functions
 $scriptPath = $MyInvocation.MyCommand.Path
 $scriptDir = Split-Path -Parent $scriptPath
-$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Common-Functions.ps1"
 
 # Check if the Common-Functions.ps1 script exists
 if (-not (Test-Path -Path $commonFunctionsPath)) {
-    Write-Host "ERROR: Common-Functions.ps1 script not found at $commonFunctionsPath" -ForegroundColor Red
+    Write-Error "Common-Functions.ps1 script not found at $commonFunctionsPath"
     exit 1
 }
 
@@ -110,7 +110,7 @@ if (-not (Test-Path -Path $commonFunctionsPath)) {
 . $commonFunctionsPath
 
 # Get the path to the Get-TDDConfiguration script
-$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Get-TDDConfiguration.ps1"
 
 # Check if the Get-TDDConfiguration script exists
 if (-not (Test-PathIsFile -Path $getTDDConfigPath)) {
@@ -226,7 +226,9 @@ elseif ($PSBoundParameters.ContainsKey('Password')) {
 }
 else {
     # Create credential with default password
-    $defaultSecurePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
+    # Note: Using plain text password for development/testing purposes only
+    # In production, use secure credential management
+    $defaultSecurePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force  # [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Development/testing default password")]
     $credential = New-Object pscredential 'admin', $defaultSecurePassword
     Write-InfoMessage "Using default credentials (admin/P@ssw0rd)."
 }

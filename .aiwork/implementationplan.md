@@ -118,7 +118,7 @@ Update any internal path references within these scripts to work from their new 
 - Scripts can be executed from new location
 - No functionality is broken
 
-#### 6. [ ] Move internal helper scripts to internal folder
+#### 6. [x] Move internal helper scripts to internal folder
 **Prompt:**
 ```
 Move the following scripts to the `scripts\internal\` folder:
