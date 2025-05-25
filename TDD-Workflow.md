@@ -10,6 +10,39 @@ This document provides comprehensive documentation for the Test-Driven Developme
 4. Responding to test results and making necessary adjustments
 5. Iterating through the process until the feature is fully implemented
 
+## Scripts Folder Structure
+
+The TDD workflow scripts are organized in a hierarchical structure for better maintainability and discoverability:
+
+```
+scripts/
+├── Start-TDDSession.ps1          # Interactive session interface
+├── Start-TDDWorkflow.ps1         # Complete workflow orchestrator
+├── Initialize-TDDEnvironment.ps1 # Environment setup entry point
+├── lib/                          # Core library functions
+│   ├── Common-Functions.ps1      # Utility functions
+│   └── Get-TDDConfiguration.ps1  # Configuration management
+├── workflow/                     # Individual workflow step scripts
+│   ├── Prepare-AppSource.ps1     # Source preparation
+│   ├── Compile-App.ps1           # App compilation
+│   ├── Deploy-App.ps1            # App deployment
+│   ├── Run-Tests.ps1             # Test execution
+│   └── View-TestResults.ps1      # Results viewing
+├── internal/                     # Internal helper scripts
+│   ├── Verify-Environment.ps1    # Environment verification
+│   └── SetupTestContainer.ps1    # Container setup
+└── config/                       # Configuration and templates
+    ├── TDDConfig.psd1            # Configuration data
+    └── Script-Template.ps1       # Script development template
+```
+
+**Key Benefits of the New Structure**:
+- **Clear separation** of user-facing vs internal scripts
+- **Logical grouping** of related functionality
+- **Improved discoverability** for new users
+- **Better maintainability** for developers
+- **Professional organization** following industry standards
+
 ## Workflow Steps
 
 The complete TDD workflow consists of the following steps:
@@ -51,12 +84,14 @@ This script:
 
 **Purpose**: Checks if the required components are installed and running.
 
+**Location**: `scripts\internal\Verify-Environment.ps1`
+
 **Parameters**:
 - `ConfigPath`: Path to the configuration file (optional)
 
 **Usage**:
 ```powershell
-.\scripts\Verify-Environment.ps1
+.\scripts\internal\Verify-Environment.ps1
 ```
 
 **Example Output**:
@@ -86,6 +121,8 @@ All environment checks passed! The environment is ready for Business Central TDD
 
 **Purpose**: Prepares the source code for compilation.
 
+**Location**: `scripts\workflow\Prepare-AppSource.ps1`
+
 **Parameters**:
 - `SourceDirectory`: Path to the source directory (default: from config)
 - `OutputDirectory`: Path to the output directory (default: from config)
@@ -95,15 +132,17 @@ All environment checks passed! The environment is ready for Business Central TDD
 **Usage**:
 ```powershell
 # Prepare main app
-.\scripts\Prepare-AppSource.ps1 -AppType "Main"
+.\scripts\workflow\Prepare-AppSource.ps1 -AppType "Main"
 
 # Prepare test app
-.\scripts\Prepare-AppSource.ps1 -AppType "Test"
+.\scripts\workflow\Prepare-AppSource.ps1 -AppType "Test"
 ```
 
 ### Compile-App.ps1
 
 **Purpose**: Compiles the app using alc.exe on the host machine.
+
+**Location**: `scripts\workflow\Compile-App.ps1`
 
 **Parameters**:
 - `AppSourceDirectory`: Path to the app source directory (default: from config)
@@ -114,15 +153,17 @@ All environment checks passed! The environment is ready for Business Central TDD
 **Usage**:
 ```powershell
 # Compile main app
-.\scripts\Compile-App.ps1 -AppType "Main"
+.\scripts\workflow\Compile-App.ps1 -AppType "Main"
 
 # Compile test app
-.\scripts\Compile-App.ps1 -AppType "Test"
+.\scripts\workflow\Compile-App.ps1 -AppType "Test"
 ```
 
 ### Deploy-App.ps1
 
 **Purpose**: Deploys the compiled app to the Business Central container.
+
+**Location**: `scripts\workflow\Deploy-App.ps1`
 
 **Parameters**:
 - `AppPath`: Path to the compiled app file (default: from config)
@@ -133,15 +174,17 @@ All environment checks passed! The environment is ready for Business Central TDD
 **Usage**:
 ```powershell
 # Deploy main app
-.\scripts\Deploy-App.ps1 -AppType "Main"
+.\scripts\workflow\Deploy-App.ps1 -AppType "Main"
 
 # Deploy test app
-.\scripts\Deploy-App.ps1 -AppType "Test"
+.\scripts\workflow\Deploy-App.ps1 -AppType "Test"
 ```
 
 ### Run-Tests.ps1
 
 **Purpose**: Runs tests in the Business Central container.
+
+**Location**: `scripts\workflow\Run-Tests.ps1`
 
 **Parameters**:
 - `ContainerName`: Name of the container (default: from config)
@@ -153,15 +196,17 @@ All environment checks passed! The environment is ready for Business Central TDD
 **Usage**:
 ```powershell
 # Run all tests
-.\scripts\Run-Tests.ps1
+.\scripts\workflow\Run-Tests.ps1
 
 # Run specific test codeunit
-.\scripts\Run-Tests.ps1 -TestCodeunit "HelloWorld Test"
+.\scripts\workflow\Run-Tests.ps1 -TestCodeunit "HelloWorld Test"
 ```
 
 ### View-TestResults.ps1
 
 **Purpose**: Displays test results in a readable format.
+
+**Location**: `scripts\workflow\View-TestResults.ps1`
 
 **Parameters**:
 - `ResultFile`: Path to the test results file (default: from config)
@@ -170,7 +215,7 @@ All environment checks passed! The environment is ready for Business Central TDD
 
 **Usage**:
 ```powershell
-.\scripts\View-TestResults.ps1
+.\scripts\workflow\View-TestResults.ps1
 ```
 
 ## Complete Workflow Scripts
@@ -237,7 +282,7 @@ All environment checks passed! The environment is ready for Business Central TDD
 
 ## Configuration
 
-The TDD workflow is configured using the `TDDConfig.psd1` file in the scripts directory. This file contains settings for:
+The TDD workflow is configured using the `TDDConfig.psd1` file located in the `scripts\config\` directory. This file contains settings for:
 
 - Environment settings (container name, artifact URL, authentication method)
 - Path settings (source and output directories)
@@ -255,13 +300,13 @@ The TDD workflow is configured using the `TDDConfig.psd1` file in the scripts di
     ContainerName = "bctest"
     ArtifactUrl = ""  # Empty string means latest sandbox artifact will be used
     Auth = "NavUserPassword"
-    
+
     # Path Settings
     SourcePaths = @{
         App = ".\app"
         Test = ".\test"
     }
-    
+
     OutputPaths = @{
         Build = ".\build"
         AppSource = ".\build\app"
@@ -269,7 +314,7 @@ The TDD workflow is configured using the `TDDConfig.psd1` file in the scripts di
         AppOutput = ".\build\output"
         TestResults = ".\build\testresults"
     }
-    
+
     # Additional settings omitted for brevity
 }
 ```

@@ -299,10 +299,10 @@ Test scenarios that might break backward compatibility:
 
 ### Phase 6: Documentation and Cleanup
 
-#### 17. [ ] Update the TDD workflow plan document
+#### 17. [x] Update the TDD workflow plan document
 **Prompt:**
 ```
-Update the `tdd-workflow-plan.md` file to reflect the new script structure:
+Update the `TDD-Workflow.md` file to reflect the new script structure:
 - Update all script paths in examples and verification steps
 - Update all references to script locations
 - Add notes about the new folder structure
@@ -316,7 +316,7 @@ Ensure all documentation is accurate and reflects the new organization.
 - No outdated references remain
 - Documentation is clear and complete
 
-#### 18. [ ] Create migration guide for existing users
+#### 18. [x] Create migration guide for existing users
 **Prompt:**
 ```
 Create a migration guide document named `MIGRATION.md` in the `.aiwork` folder that explains:
