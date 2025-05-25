@@ -249,7 +249,7 @@ Check that all functions, script calls, and dependencies work correctly.
 - Workflow orchestration functions properly
 - Environment setup completes successfully
 
-#### 14. [ ] Test workflow scripts individually
+#### 14. [x] Test workflow scripts individually
 **Prompt:**
 ```
 Test each workflow script individually from their new location in the `workflow\` folder:

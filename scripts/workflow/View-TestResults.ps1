@@ -349,7 +349,7 @@ function Get-TestResultSummary {
     return $result
 }
 
-function Invoke-ViewTestResults {
+function Invoke-ViewTestResult {
     <#
     .SYNOPSIS
         Main function to view test results.
@@ -528,7 +528,7 @@ if ($config.TDDSession) {
 }
 
 # Execute the main function
-$result = Invoke-ViewTestResults -Config $config -ResultFile $ResultFile -ShowPassed $ShowPassed -DetailLevel $DetailLevel
+$result = Invoke-ViewTestResult -Config $config -ResultFile $ResultFile -ShowPassed $ShowPassed -DetailLevel $DetailLevel
 
 # Return the result
 return $result

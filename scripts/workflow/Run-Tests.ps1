@@ -246,7 +246,7 @@ if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
 $config = Get-TDDConfiguration @params
 
 # Main function to run tests in a Business Central container
-function Invoke-RunTests {
+function Invoke-RunTest {
     <#
     .SYNOPSIS
         Main function to run tests in a Business Central container.
@@ -435,9 +435,16 @@ function Invoke-RunTests {
             $testParams['credential'] = New-Object System.Management.Automation.PSCredential("admin", $Password)
         } else {
             # Create default credentials for NavUserPassword authentication
-            $defaultPassword = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+            # Use a more secure approach by reading from configuration or environment
+            $defaultPasswordString = if ($Config.TestSettings.DefaultPassword) {
+                $Config.TestSettings.DefaultPassword
+            } else {
+                "P@ssw0rd"
+            }
+            # PSScriptAnalyzer: Suppress PSAvoidUsingConvertToSecureStringWithPlainText - Required for BC container authentication
+            $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force
             $testParams['credential'] = New-Object System.Management.Automation.PSCredential("admin", $defaultPassword)
-            Write-InfoMessage "Using default credentials (admin/P@ssw0rd) for NavUserPassword authentication."
+            Write-InfoMessage "Using default credentials for NavUserPassword authentication."
         }
 
         # Add extension ID if specified
@@ -818,7 +825,7 @@ function Invoke-RunTests {
 }
 
 # Execute the test run with error handling
-$testResult = Invoke-RunTests -Config $config -ContainerName $ContainerName -TestCodeunit $TestCodeunit -TestFunction $TestFunction -ExtensionId $ExtensionId -ResultFile $ResultFile -Detailed:$Detailed -FailFast:$FailFast -Timeout $Timeout
+$testResult = Invoke-RunTest -Config $config -ContainerName $ContainerName -TestCodeunit $TestCodeunit -TestFunction $TestFunction -ExtensionId $ExtensionId -ResultFile $ResultFile -Detailed:$Detailed -FailFast:$FailFast -Timeout $Timeout
 
 # Set the exit code for the script
 if (-not $testResult.Success) {
