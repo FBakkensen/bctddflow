@@ -40,7 +40,7 @@ scripts/
 
 ### Phase 1: Preparation and Analysis
 
-#### 1. [ ] Create backup of current scripts folder
+#### 1. [x] Create backup of current scripts folder
 **Prompt:**
 ```
 Create a backup copy of the entire scripts folder by copying it to a new folder named `scripts.backup` in the same directory. This ensures we can restore the original structure if needed during the restructuring process.
@@ -58,7 +58,7 @@ Analyze all PowerShell scripts in the scripts folder to identify:
 2. All script invocation calls (`& .\path\to\script.ps1` or `.\script.ps1`)
 3. All relative path references to other scripts
 4. Configuration file path references
-Create a detailed dependency map showing which scripts call which other scripts and document all path references that will need updating.
+Create a detailed dependency map in markdown file called `script-dependencies.md` in the folder `.aiwork` showing which scripts call which other scripts and document all path references that will need updating.
 ```
 **Verification:**
 - Document shows complete dependency map
