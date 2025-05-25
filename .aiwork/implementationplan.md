@@ -182,7 +182,7 @@ Test that all script calls work correctly from the updated paths.
 - All functionality works as expected
 - Workflow orchestration still functions
 
-#### 10. [ ] Update cross-references between moved scripts
+#### 10. [x] Update cross-references between moved scripts
 **Prompt:**
 ```
 Update any cross-references between scripts that have been moved to different folders:
