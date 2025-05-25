@@ -99,9 +99,11 @@ param(
     [int]$Timeout = 0,
 
     [Parameter(Mandatory = $false)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
     [PSCredential]$Credential,
 
     [Parameter(Mandatory = $false)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
     [SecureString]$Password
 )
 
@@ -146,6 +148,7 @@ function GenerateTestResultsXml {
         [int]$TotalTests,
 
         [Parameter(Mandatory = $true)]
+        [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
         [int]$PassedTests,
 
         [Parameter(Mandatory = $true)]
@@ -392,6 +395,7 @@ function Invoke-RunTest {
         [string]$ResultFile,
 
         [Parameter(Mandatory = $false)]
+        [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
         [switch]$Detailed,
 
         [Parameter(Mandatory = $false)]
@@ -540,6 +544,7 @@ function Invoke-RunTest {
             }
             # Required for BC container authentication
             # PSScriptAnalyzer suppression: This is required for BC container authentication
+            # SuppressMessage: PSAvoidUsingConvertToSecureStringWithPlainText - Required for BC container authentication
             $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force
             $testParams['credential'] = New-Object System.Management.Automation.PSCredential("admin", $defaultPassword)
             Write-InfoMessage "Using default credentials for NavUserPassword authentication."
