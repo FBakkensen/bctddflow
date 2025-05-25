@@ -133,7 +133,7 @@ Update any internal path references within these scripts to work from their new 
 - Scripts can be executed from new location
 - Dependencies on other scripts still work
 
-#### 7. [ ] Move configuration files to config folder
+#### 7. [x] Move configuration files to config folder
 **Prompt:**
 ```
 Move the following files to the `scripts\config\` folder:

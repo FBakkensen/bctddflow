@@ -6,7 +6,7 @@
     1. Purpose of the script
     2. Key functionality
     3. How it fits into the Business Central TDD workflow
-    
+
     This script uses common utility functions from Common-Functions.ps1 and configuration
     from TDDConfig.psd1 for consistent functionality across the TDD workflow scripts.
 .PARAMETER ConfigPath
@@ -26,11 +26,11 @@
     # Runs the script with a custom configuration file
 .NOTES
     This script is part of the Business Central TDD workflow.
-    
+
     Author: [Your Name]
     Date: [Current Date]
     Version: 1.0
-    
+
     Change Log:
     1.0 - Initial version
 #>
@@ -39,10 +39,10 @@
 param(
     [Parameter(Mandatory = $false)]
     [string]$ConfigPath,
-    
+
     [Parameter(Mandatory = $false)]
     [string]$Parameter1,
-    
+
     [Parameter(Mandatory = $false)]
     [string]$Parameter2
 )
@@ -71,17 +71,17 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 }
 
 # Import Common-Functions.ps1
-$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Common-Functions.ps1"
 if (-not (Test-Path -Path $commonFunctionsPath)) {
-    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the same folder as this script."
+    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the lib folder."
     exit 1
 }
 . $commonFunctionsPath
 
 # Import Get-TDDConfiguration.ps1
-$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Get-TDDConfiguration.ps1"
 if (-not (Test-Path -Path $getTDDConfigPath)) {
-    Write-Error "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath. Make sure the script exists in the same folder as this script."
+    Write-Error "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath. Make sure the script exists in the lib folder."
     exit 1
 }
 
@@ -143,14 +143,14 @@ function Invoke-MainFunction {
     param(
         [Parameter(Mandatory = $true)]
         [hashtable]$Config,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$Parameter1,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$Parameter2
     )
-    
+
     # Initialize result object
     $result = [PSCustomObject]@{
         Success = $false
@@ -158,49 +158,49 @@ function Invoke-MainFunction {
         Data = $null
         Timestamp = Get-Date
     }
-    
+
     try {
         # Validate parameters
         if ([string]::IsNullOrWhiteSpace($Parameter1)) {
             $Parameter1 = "DefaultValue1"  # Set default value if not provided
         }
-        
+
         if ([string]::IsNullOrWhiteSpace($Parameter2)) {
             $Parameter2 = "DefaultValue2"  # Set default value if not provided
         }
-        
+
         # Display section header
         Write-SectionHeader "Main Function Execution" -ForegroundColor Cyan -DecorationType Underline
-        
+
         # Display information about the operation
         Write-InfoMessage "Starting operation with the following parameters:"
         Write-InfoMessage "  Parameter1: $Parameter1"
         Write-InfoMessage "  Parameter2: $Parameter2"
         Write-InfoMessage "  Container Name: $($Config.ContainerName)"
-        
+
         # Perform the main operation with error handling
         $operationSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
             # TODO: Replace this with your actual script logic
-            
+
             # Example: Check if Docker is running
             if (-not (Test-DockerRunning)) {
                 throw "Docker is not running. Please start Docker and try again."
             }
-            
+
             # Example: Check if container exists
             if (-not (Test-DockerContainerExists -ContainerName $Config.ContainerName)) {
                 throw "Container '$($Config.ContainerName)' does not exist. Please create the container and try again."
             }
-            
+
             # Example: Get container information
             $containerInfo = Get-DockerContainerInfo -ContainerName $Config.ContainerName
             if (-not $containerInfo) {
                 throw "Failed to get container information for '$($Config.ContainerName)'."
             }
-            
+
             # Example: Perform some operation
             # ... Your code here ...
-            
+
             # Return data for the result object
             return @{
                 ContainerInfo = $containerInfo
@@ -209,19 +209,19 @@ function Invoke-MainFunction {
                 # Add more data as needed
             }
         } -ErrorMessage "Failed to perform the operation"
-        
+
         if ($operationSuccess -eq $true) {
             # Operation succeeded
             $result.Success = $true
             $result.Message = "Operation completed successfully."
             $result.Data = $operationSuccess  # This will contain the data returned from the script block
-            
+
             Write-SuccessMessage $result.Message
         } else {
             # Operation failed
             $result.Success = $false
             $result.Message = "Operation failed. See previous error messages for details."
-            
+
             Write-ErrorMessage $result.Message
         }
     }
@@ -229,10 +229,10 @@ function Invoke-MainFunction {
         # Handle any unexpected errors
         $result.Success = $false
         $result.Message = "An unexpected error occurred: $_"
-        
+
         Write-ErrorMessage $result.Message
     }
-    
+
     return $result
 }
 

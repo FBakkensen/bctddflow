@@ -95,22 +95,22 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 
 # Set default config path if not provided
 if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "config\TDDConfig.psd1"
     Write-Verbose "Using default configuration path: $ConfigPath"
 }
 
 # Import Common-Functions.ps1
-$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "lib\Common-Functions.ps1"
 if (-not (Test-Path -Path $commonFunctionsPath)) {
-    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the same folder as Initialize-TDDEnvironment.ps1."
+    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the lib folder."
     exit 1
 }
 . $commonFunctionsPath
 
 # Import the Get-TDDConfiguration script
-$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "lib\Get-TDDConfiguration.ps1"
 if (-not (Test-Path -Path $getTDDConfigPath)) {
-    Write-ErrorMessage "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" "Make sure the script exists in the same folder as Initialize-TDDEnvironment.ps1."
+    Write-ErrorMessage "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath" "Make sure the script exists in the lib folder."
     exit 1
 }
 . $getTDDConfigPath
