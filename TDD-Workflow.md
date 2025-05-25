@@ -190,16 +190,26 @@ All environment checks passed! The environment is ready for Business Central TDD
 - `ContainerName`: Name of the container (default: from config)
 - `TestCodeunit`: Name or ID of test codeunit to run (default: "*" for all)
 - `TestFunction`: Name of test function to run (default: "*" for all)
-- `ExtensionId`: ID of the extension to test (optional)
+- `ExtensionId`: ID of the extension to test (optional, automatically read from `test\app.json` if not provided)
+- `TestCodeunitRange`: BC-compatible filter string for loading test codeunits (optional, use "*" to load all)
 - `ConfigPath`: Path to the configuration file (optional)
 
 **Usage**:
 ```powershell
-# Run all tests
+# Run all tests (extension ID automatically read from test\app.json)
 .\scripts\workflow\Run-Tests.ps1
 
 # Run specific test codeunit
 .\scripts\workflow\Run-Tests.ps1 -TestCodeunit "HelloWorld Test"
+
+# Run tests with explicit extension ID
+.\scripts\workflow\Run-Tests.ps1 -ExtensionId "12345678-1234-1234-1234-123456789012"
+
+# Load all test codeunits using testCodeunitRange
+.\scripts\workflow\Run-Tests.ps1 -TestCodeunitRange "*"
+
+# Combine parameters for precise test filtering
+.\scripts\workflow\Run-Tests.ps1 -TestCodeunit "HelloWorld Test" -TestCodeunitRange "*"
 ```
 
 ### View-TestResults.ps1
@@ -240,20 +250,27 @@ All environment checks passed! The environment is ready for Business Central TDD
 - `SkipResults`: Skip displaying test results
 - `TestCodeunit`: Name or ID of test codeunit to run (default: "*" for all)
 - `TestFunction`: Name of test function to run (default: "*" for all)
-- `ExtensionId`: ID of the extension to test (optional)
+- `ExtensionId`: ID of the extension to test (optional, automatically read from `test\app.json` if not provided)
+- `TestCodeunitRange`: BC-compatible filter string for loading test codeunits (optional, use "*" to load all)
 - `Detailed`: Include detailed test information
 - `ShowPassed`: Show passed tests in the output
 
 **Usage**:
 ```powershell
-# Execute complete workflow
+# Execute complete workflow (extension ID automatically read from test\app.json)
 .\scripts\Start-TDDWorkflow.ps1
 
 # Only compile apps
 .\scripts\Start-TDDWorkflow.ps1 -CompileOnly
 
-# Only run tests
+# Only run tests with specific test codeunit
 .\scripts\Start-TDDWorkflow.ps1 -TestOnly -TestCodeunit "HelloWorld Test"
+
+# Run tests with explicit extension ID
+.\scripts\Start-TDDWorkflow.ps1 -TestOnly -ExtensionId "12345678-1234-1234-1234-123456789012"
+
+# Run tests with testCodeunitRange to load all test codeunits
+.\scripts\Start-TDDWorkflow.ps1 -TestOnly -TestCodeunitRange "*"
 ```
 
 ### Start-TDDSession.ps1

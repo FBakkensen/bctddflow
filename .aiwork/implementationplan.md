@@ -93,17 +93,17 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 - [x] No breaking changes to existing parameter handling
 
 ### Task 7: Update TDD-Workflow.md Documentation
-**Status:** [ ]
+**Status:** [x]
 
 **Prompt:** Update the `TDD-Workflow.md` file to document the new parameter behavior for `Run-Tests.ps1`. Include information about automatic extension ID reading from `test\app.json`, the new `TestCodeunitRange` parameter, and updated usage examples.
 
 **Verification Criteria:**
-- [ ] Run-Tests.ps1 parameter documentation updated with `TestCodeunitRange`
-- [ ] Documentation explains automatic extension ID reading behavior
-- [ ] Usage examples updated to show new parameter options
-- [ ] Examples demonstrate both explicit ExtensionId and automatic reading scenarios
-- [ ] Documentation maintains consistent formatting and style
-- [ ] All parameter descriptions are accurate and complete
+- [x] Run-Tests.ps1 parameter documentation updated with `TestCodeunitRange`
+- [x] Documentation explains automatic extension ID reading behavior
+- [x] Usage examples updated to show new parameter options
+- [x] Examples demonstrate both explicit ExtensionId and automatic reading scenarios
+- [x] Documentation maintains consistent formatting and style
+- [x] All parameter descriptions are accurate and complete
 
 ### Task 8: Comprehensive Testing and Validation
 **Status:** [ ]
