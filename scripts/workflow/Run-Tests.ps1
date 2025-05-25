@@ -255,6 +255,88 @@ if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
 }
 $config = Get-TDDConfiguration @params
 
+# Helper function to get extension ID from app.json
+function Get-ExtensionIdFromAppJson {
+    <#
+    .SYNOPSIS
+        Reads and extracts the extension ID from the test application's app.json file.
+    .DESCRIPTION
+        This function reads the test application's app.json file and extracts the extension ID.
+        It uses the centralized configuration to locate the test app.json file and includes
+        robust error handling for various failure scenarios.
+    .PARAMETER Config
+        The configuration object containing SourcePaths.Test for locating the app.json file.
+    .OUTPUTS
+        System.String. Returns the extension ID from the app.json file.
+    .EXAMPLE
+        $extensionId = Get-ExtensionIdFromAppJson -Config $config
+        # Reads the extension ID from the test app's app.json file
+    .NOTES
+        This function is part of the Business Central TDD workflow and uses the centralized
+        configuration system to locate files.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Config
+    )
+
+    try {
+        # Validate that the configuration contains the required SourcePaths.Test setting
+        if (-not $Config.ContainsKey('SourcePaths') -or -not $Config.SourcePaths.ContainsKey('Test')) {
+            throw "Configuration does not contain SourcePaths.Test setting. Please check your TDDConfig.psd1 file."
+        }
+
+        # Construct the path to app.json using the configuration
+        $testSourcePath = $Config.SourcePaths.Test
+        $appJsonRelativePath = Join-Path -Path $testSourcePath -ChildPath "app.json"
+
+        # Use Resolve-TDDPath for proper path resolution
+        $appJsonPath = Resolve-TDDPath -Path $appJsonRelativePath
+
+        Write-InfoMessage "Looking for app.json at: $appJsonPath"
+
+        # Check if app.json exists
+        if (-not (Test-Path -Path $appJsonPath -PathType Leaf)) {
+            throw "app.json file not found at path: $appJsonPath. Please ensure the test app contains a valid app.json file."
+        }
+
+        # Read and parse app.json
+        Write-InfoMessage "Reading app.json file..."
+        $appJsonContent = Get-Content -Path $appJsonPath -Raw -ErrorAction Stop
+
+        if ([string]::IsNullOrWhiteSpace($appJsonContent)) {
+            throw "app.json file is empty at path: $appJsonPath"
+        }
+
+        # Parse JSON content
+        try {
+            $appJsonObject = $appJsonContent | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            throw "Invalid JSON format in app.json file at path: $appJsonPath. Error: $($_.Exception.Message)"
+        }
+
+        # Check if the 'id' field exists
+        if (-not $appJsonObject.PSObject.Properties.Name -contains 'id') {
+            throw "app.json file at path: $appJsonPath is missing the required 'id' field."
+        }
+
+        # Validate that the ID is not null or empty
+        $extensionId = $appJsonObject.id
+        if ([string]::IsNullOrWhiteSpace($extensionId)) {
+            throw "Extension ID in app.json file at path: $appJsonPath is null or empty."
+        }
+
+        Write-InfoMessage "Successfully read extension ID from app.json: $extensionId"
+        return $extensionId.ToString()
+    }
+    catch {
+        Write-ErrorMessage "Failed to read extension ID from app.json: $($_.Exception.Message)"
+        throw
+    }
+}
+
 # Main function to run tests in a Business Central container
 function Invoke-RunTest {
     <#
