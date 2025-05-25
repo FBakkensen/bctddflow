@@ -36,16 +36,20 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 ### Task 3: Create JSON Reading Helper Function
 **Status:** [ ]
 
-**Prompt:** Create a helper function `Get-ExtensionIdFromAppJson` in the `Run-Tests.ps1` script that reads and parses the `test\app.json` file to extract the extension ID. Include robust error handling for file not found, invalid JSON, and missing ID field scenarios.
+**Prompt:** Create a helper function `Get-ExtensionIdFromAppJson` in the `Run-Tests.ps1` script that reads and parses the test application's `app.json` file to extract the extension ID. The function should use the centralized configuration from `scripts\TDDConfig.psd1` to locate the test app.json file by reading the `SourcePaths.Test` configuration value instead of using hardcoded paths. Include robust error handling for file not found, invalid JSON, and missing ID field scenarios.
 
 **Verification Criteria:**
 - [ ] Function `Get-ExtensionIdFromAppJson` created with proper parameter validation
+- [ ] Function accepts a configuration parameter to access `SourcePaths.Test` value
+- [ ] Function constructs the path to app.json using `$Config.SourcePaths.Test` from configuration
+- [ ] Function uses `Resolve-TDDPath` from Common-Functions.ps1 for proper path resolution
 - [ ] Function uses `Get-Content` and `ConvertFrom-Json` to parse the file
 - [ ] Error handling implemented for file not found scenarios
 - [ ] Error handling implemented for invalid JSON format
 - [ ] Error handling implemented for missing `id` field in JSON
 - [ ] Function returns the extension ID as a string
 - [ ] Function includes proper documentation with `.SYNOPSIS` and `.DESCRIPTION`
+- [ ] No hardcoded paths to test directory or app.json file
 
 ### Task 4: Implement Extension ID Resolution Logic
 **Status:** [ ]
