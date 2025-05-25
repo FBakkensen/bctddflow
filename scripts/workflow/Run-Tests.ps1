@@ -98,7 +98,7 @@ param(
 # Dot-source the Common-Functions.ps1 script
 $scriptPath = $MyInvocation.MyCommand.Path
 $scriptDir = Split-Path -Path $scriptPath -Parent
-$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Common-Functions.ps1"
 
 if (Test-Path -Path $commonFunctionsPath) {
     . $commonFunctionsPath
@@ -230,7 +230,7 @@ $VerbosePreference = 'Continue'
 $InformationPreference = 'Continue'
 
 # Load configuration using the centralized Get-TDDConfiguration function
-$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Get-TDDConfiguration.ps1"
 if (Test-Path -Path $getTDDConfigPath) {
     . $getTDDConfigPath
 } else {

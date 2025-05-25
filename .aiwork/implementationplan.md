@@ -100,7 +100,7 @@ Update any internal path references within these scripts to work from their new 
 - All internal path references are corrected
 - Functions work correctly when called
 
-#### 5. [ ] Move workflow scripts to workflow folder
+#### 5. [x] Move workflow scripts to workflow folder
 **Prompt:**
 ```
 Move the following scripts to the `scripts\workflow\` folder:

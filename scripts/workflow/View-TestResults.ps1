@@ -85,17 +85,17 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 }
 
 # Import Common-Functions.ps1
-$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "Common-Functions.ps1"
+$commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Common-Functions.ps1"
 if (-not (Test-Path -Path $commonFunctionsPath)) {
-    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the same folder as this script."
+    Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the lib folder."
     exit 1
 }
 . $commonFunctionsPath
 
 # Import Get-TDDConfiguration.ps1
-$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "Get-TDDConfiguration.ps1"
+$getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "..\lib\Get-TDDConfiguration.ps1"
 if (-not (Test-Path -Path $getTDDConfigPath)) {
-    Write-Error "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath. Make sure the script exists in the same folder as this script."
+    Write-Error "Get-TDDConfiguration.ps1 not found at path: $getTDDConfigPath. Make sure the script exists in the lib folder."
     exit 1
 }
 
