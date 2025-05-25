@@ -86,20 +86,20 @@ Tests can be run using the TDD workflow scripts:
 
 ```powershell
 # Run all tests
-.\scripts\Run-Tests.ps1
+.\scripts\workflow\Run-Tests.ps1
 
 # Run a specific test codeunit
-.\scripts\Run-Tests.ps1 -TestCodeunit "My Test"
+.\scripts\workflow\Run-Tests.ps1 -TestCodeunit "My Test"
 
 # Run a specific test function
-.\scripts\Run-Tests.ps1 -TestCodeunit "My Test" -TestFunction "TestSomething"
+.\scripts\workflow\Run-Tests.ps1 -TestCodeunit "My Test" -TestFunction "TestSomething"
 ```
 
 ## Integration with TDD Workflow
 
 The test suite integrates with the TDD workflow scripts through the BcContainerHelper module:
 
-1. The `Run-Tests.ps1` script uses the `Run-TestsInBcContainer` cmdlet from BcContainerHelper
+1. The `Run-Tests.ps1` script (located in `scripts\workflow\`) uses the `Run-TestsInBcContainer` cmdlet from BcContainerHelper
 2. Test results are captured and formatted as XUnit output
 3. The test runner provides a consistent interface for the TDD workflow scripts
 4. Test execution can be filtered by codeunit, function, or tag

@@ -93,10 +93,10 @@ Example configuration usage:
 
 ```powershell
 # Load default configuration
-$config = .\scripts\Get-TDDConfiguration.ps1
+$config = .\scripts\lib\Get-TDDConfiguration.ps1
 
 # Override specific settings
-$config = .\scripts\Get-TDDConfiguration.ps1 -OverrideSettings @{
+$config = .\scripts\lib\Get-TDDConfiguration.ps1 -OverrideSettings @{
     ContainerName = "mycontainer"
     Auth = "Windows"
 }
@@ -190,7 +190,7 @@ All scripts in the `scripts/` folder share these common features:
 **Usage Example**:
 ```powershell
 # Import common functions
-. .\scripts\Common-Functions.ps1
+. .\scripts\lib\Common-Functions.ps1
 
 # Use imported functions
 Write-InfoMessage "Initializing environment..."
@@ -220,24 +220,24 @@ if ($bcContainerHelperAvailable) {
 **Usage Examples**:
 ```powershell
 # Load default configuration
-$config = .\scripts\Get-TDDConfiguration.ps1
+$config = .\scripts\lib\Get-TDDConfiguration.ps1
 
 # Load with custom path
-$config = .\scripts\Get-TDDConfiguration.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
+$config = .\scripts\lib\Get-TDDConfiguration.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
 
 # Override specific settings
-$config = .\scripts\Get-TDDConfiguration.ps1 -OverrideSettings @{
+$config = .\scripts\lib\Get-TDDConfiguration.ps1 -OverrideSettings @{
     ContainerName = "mycontainer"
     Auth = "Windows"
 }
 
 # Validate required settings
-$config = .\scripts\Get-TDDConfiguration.ps1 -RequiredSettings @(
+$config = .\scripts\lib\Get-TDDConfiguration.ps1 -RequiredSettings @(
     "ContainerName", "Auth", "MemoryLimit"
 )
 
 # Validate only
-$isValid = .\scripts\Get-TDDConfiguration.ps1 -ValidateOnly
+$isValid = .\scripts\lib\Get-TDDConfiguration.ps1 -ValidateOnly
 ```
 
 #### Initialize-TDDEnvironment.ps1
@@ -297,7 +297,7 @@ $isValid = .\scripts\Get-TDDConfiguration.ps1 -ValidateOnly
 **Usage Example**:
 ```powershell
 # Create a new script based on the template
-Copy-Item .\scripts\Script-Template.ps1 .\scripts\My-NewScript.ps1
+Copy-Item .\scripts\config\Script-Template.ps1 .\scripts\My-NewScript.ps1
 
 # Edit the new script to implement your functionality
 # Then run it with parameters
@@ -333,15 +333,15 @@ Copy-Item .\scripts\Script-Template.ps1 .\scripts\My-NewScript.ps1
 **Usage Examples**:
 ```powershell
 # Create container with default settings
-.\scripts\SetupTestContainer.ps1
+.\scripts\internal\SetupTestContainer.ps1
 
 # Create container with custom settings
-.\scripts\SetupTestContainer.ps1 -ContainerName "mytest" -Auth "Windows" -Country "us"
+.\scripts\internal\SetupTestContainer.ps1 -ContainerName "mytest" -Auth "Windows" -Country "us"
 
 # Create container with custom credentials
 $securePassword = ConvertTo-SecureString "MyPassword" -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential("admin", $securePassword)
-.\scripts\SetupTestContainer.ps1 -Credential $credential
+.\scripts\internal\SetupTestContainer.ps1 -Credential $credential
 ```
 
 #### TDDConfig.psd1
@@ -360,12 +360,12 @@ $credential = New-Object System.Management.Automation.PSCredential("admin", $sec
 
 **Usage**: This file is loaded by `Get-TDDConfiguration.ps1` and used by all scripts in the TDD workflow.
 
-#### Test-TDDEnvironment.ps1 (formerly Verify-Environment.ps1)
+#### Verify-Environment.ps1
 
 **Purpose**: Verifies the environment for Business Central TDD workflow by checking if required components are installed and running.
 
 **Parameters**:
-- `ConfigPath`: Path to the configuration file (default: "scripts\TDDConfig.psd1")
+- `ConfigPath`: Path to the configuration file (default: "scripts\config\TDDConfig.psd1")
 
 **Returns**: Boolean indicating if all checks passed
 
@@ -378,15 +378,15 @@ $credential = New-Object System.Management.Automation.PSCredential("admin", $sec
 **Usage Examples**:
 ```powershell
 # Basic verification
-.\scripts\Test-TDDEnvironment.ps1
+.\scripts\internal\Verify-Environment.ps1
 
 # Verification with custom configuration
-.\scripts\Test-TDDEnvironment.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
+.\scripts\internal\Verify-Environment.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
 
 # Verification before running tests
-if (.\scripts\Test-TDDEnvironment.ps1) {
+if (.\scripts\internal\Verify-Environment.ps1) {
     # Environment is ready, proceed with tests
-    .\scripts\Run-Tests.ps1
+    .\scripts\workflow\Run-Tests.ps1
 }
 ```
 
@@ -414,7 +414,7 @@ The script returns an exit code of 0 if all checks pass, and 1 if any check fail
 
 The scripts work together to provide a complete TDD workflow for Business Central:
 
-1. `Test-TDDEnvironment.ps1` verifies the environment is ready
+1. `Verify-Environment.ps1` verifies the environment is ready
 2. `Initialize-TDDEnvironment.ps1` sets up the environment if needed
 3. `SetupTestContainer.ps1` creates the Business Central container
 4. Additional scripts (to be implemented) will handle app compilation, publishing, and test execution
