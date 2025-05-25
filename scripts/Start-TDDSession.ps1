@@ -299,7 +299,7 @@ function Compile-MainApp {
         Write-SuccessMessage "Main app source prepared successfully."
 
         # Then, compile the app
-        $compileAppPath = Join-Path -Path $scriptDir -ChildPath "Compile-App.ps1"
+        $compileAppPath = Join-Path -Path $scriptDir -ChildPath "workflow\Compile-App.ps1"
         if (-not (Test-Path -Path $compileAppPath)) {
             throw "Compile-App.ps1 not found at path: $compileAppPath"
         }
@@ -359,7 +359,7 @@ function Compile-TestApp {
 
         # First, prepare the source code
         Write-InfoMessage "Preparing source code for test app..."
-        $prepareAppPath = Join-Path -Path $scriptDir -ChildPath "Prepare-AppSource.ps1"
+        $prepareAppPath = Join-Path -Path $scriptDir -ChildPath "workflow\Prepare-AppSource.ps1"
         if (-not (Test-Path -Path $prepareAppPath)) {
             throw "Prepare-AppSource.ps1 not found at path: $prepareAppPath"
         }
@@ -381,7 +381,7 @@ function Compile-TestApp {
         Write-SuccessMessage "Test app source prepared successfully."
 
         # Then, compile the app
-        $compileAppPath = Join-Path -Path $scriptDir -ChildPath "Compile-App.ps1"
+        $compileAppPath = Join-Path -Path $scriptDir -ChildPath "workflow\Compile-App.ps1"
         if (-not (Test-Path -Path $compileAppPath)) {
             throw "Compile-App.ps1 not found at path: $compileAppPath"
         }
@@ -446,7 +446,7 @@ function Deploy-MainApp {
             }
         }
 
-        $deployAppPath = Join-Path -Path $scriptDir -ChildPath "Deploy-App.ps1"
+        $deployAppPath = Join-Path -Path $scriptDir -ChildPath "workflow\Deploy-App.ps1"
         if (-not (Test-Path -Path $deployAppPath)) {
             throw "Deploy-App.ps1 not found at path: $deployAppPath"
         }
@@ -520,7 +520,7 @@ function Deploy-TestApp {
             }
         }
 
-        $deployAppPath = Join-Path -Path $scriptDir -ChildPath "Deploy-App.ps1"
+        $deployAppPath = Join-Path -Path $scriptDir -ChildPath "workflow\Deploy-App.ps1"
         if (-not (Test-Path -Path $deployAppPath)) {
             throw "Deploy-App.ps1 not found at path: $deployAppPath"
         }
@@ -586,7 +586,7 @@ function Run-AllTests {
             }
         }
 
-        $runTestsPath = Join-Path -Path $scriptDir -ChildPath "Run-Tests.ps1"
+        $runTestsPath = Join-Path -Path $scriptDir -ChildPath "workflow\Run-Tests.ps1"
         if (-not (Test-Path -Path $runTestsPath)) {
             throw "Run-Tests.ps1 not found at path: $runTestsPath"
         }
@@ -680,7 +680,7 @@ function Run-SpecificTests {
             $sessionState.LastExtensionId = $extensionId
         }
 
-        $runTestsPath = Join-Path -Path $scriptDir -ChildPath "Run-Tests.ps1"
+        $runTestsPath = Join-Path -Path $scriptDir -ChildPath "workflow\Run-Tests.ps1"
         if (-not (Test-Path -Path $runTestsPath)) {
             throw "Run-Tests.ps1 not found at path: $runTestsPath"
         }
@@ -756,7 +756,7 @@ function View-TestResults {
             }
         }
 
-        $viewResultsPath = Join-Path -Path $scriptDir -ChildPath "View-TestResults.ps1"
+        $viewResultsPath = Join-Path -Path $scriptDir -ChildPath "workflow\View-TestResults.ps1"
         if (-not (Test-Path -Path $viewResultsPath)) {
             throw "View-TestResults.ps1 not found at path: $viewResultsPath"
         }

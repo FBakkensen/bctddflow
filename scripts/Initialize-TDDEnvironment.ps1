@@ -189,7 +189,7 @@ function Initialize-BCTDDEnvironment {
     # Step 1: Verify environment prerequisites (unless skipped)
     if (-not $SkipVerification) {
         Write-InfoMessage "Verifying environment prerequisites..."
-        $verifyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "Verify-Environment.ps1"
+        $verifyScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "internal\Verify-Environment.ps1"
 
         if (-not (Test-PathIsFile -Path $verifyScriptPath)) {
             Write-ErrorMessage "Verify-Environment.ps1 script not found at path: $verifyScriptPath"
@@ -297,7 +297,7 @@ function Initialize-BCTDDEnvironment {
         }
 
         # Get the path to SetupTestContainer.ps1
-        $setupScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "SetupTestContainer.ps1"
+        $setupScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "internal\SetupTestContainer.ps1"
 
         if (-not (Test-PathIsFile -Path $setupScriptPath)) {
             Write-ErrorMessage "SetupTestContainer.ps1 script not found at path: $setupScriptPath"

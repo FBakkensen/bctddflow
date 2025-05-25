@@ -166,7 +166,7 @@ Update all references to `Common-Functions.ps1` and `Get-TDDConfiguration.ps1` t
 - Configuration loading works correctly
 - No broken references remain
 
-#### 9. [ ] Update script calls from root scripts to moved scripts
+#### 9. [x] Update script calls from root scripts to moved scripts
 **Prompt:**
 ```
 Update all script invocation calls in root-level scripts to reference the new locations:
