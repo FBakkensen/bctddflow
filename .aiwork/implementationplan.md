@@ -81,16 +81,16 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 - [x] All parameters work in combination for precise test filtering
 
 ### Task 6: Update Start-TDDWorkflow.ps1 Parameter Support
-**Status:** [ ]
+**Status:** [x]
 
 **Prompt:** Evaluate and update `scripts\Start-TDDWorkflow.ps1` to support the new `TestCodeunitRange` parameter. Add the parameter to the script if needed and ensure it's properly passed to `Run-Tests.ps1`.
 
 **Verification Criteria:**
-- [ ] Evaluated whether `TestCodeunitRange` parameter should be added to Start-TDDWorkflow.ps1
-- [ ] If needed, parameter added with proper validation and documentation
-- [ ] Parameter properly passed to Run-Tests.ps1 in the `$runTestsParams` hashtable
-- [ ] Script help documentation updated if parameter was added
-- [ ] No breaking changes to existing parameter handling
+- [x] Evaluated whether `TestCodeunitRange` parameter should be added to Start-TDDWorkflow.ps1
+- [x] If needed, parameter added with proper validation and documentation
+- [x] Parameter properly passed to Run-Tests.ps1 in the `$runTestsParams` hashtable
+- [x] Script help documentation updated if parameter was added
+- [x] No breaking changes to existing parameter handling
 
 ### Task 7: Update TDD-Workflow.md Documentation
 **Status:** [ ]

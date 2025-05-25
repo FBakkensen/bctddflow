@@ -51,6 +51,9 @@
     Name of test function to run. Wildcards (? and *) are supported. Default is * (all functions).
 .PARAMETER ExtensionId
     Specifying an extensionId causes the test tool to run all tests in the app with this app id.
+.PARAMETER TestCodeunitRange
+    A BC-compatible filter string to use for loading test codeunits (similar to -extensionId).
+    This is not to be confused with -testCodeunit. If you set this parameter to '*', all test codeunits will be loaded.
 .PARAMETER Detailed
     Include this switch to output success/failure information for all tests.
 .PARAMETER ShowPassed
@@ -130,6 +133,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$ExtensionId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$TestCodeunitRange,
 
     [Parameter(Mandatory = $false)]
     [switch]$Detailed,
@@ -252,6 +258,8 @@ function Invoke-TDDWorkflow {
         Name of test function to run.
     .PARAMETER ExtensionId
         Extension ID to run tests for.
+    .PARAMETER TestCodeunitRange
+        A BC-compatible filter string to use for loading test codeunits.
     .PARAMETER Detailed
         Output detailed test information.
     .PARAMETER ShowPassed
@@ -309,6 +317,9 @@ function Invoke-TDDWorkflow {
 
         [Parameter(Mandatory = $false)]
         [string]$ExtensionId,
+
+        [Parameter(Mandatory = $false)]
+        [string]$TestCodeunitRange,
 
         [Parameter(Mandatory = $false)]
         [switch]$Detailed,
@@ -422,7 +433,7 @@ function Invoke-TDDWorkflow {
             $verifyParams['ConfigPath'] = $ConfigPath
         }
 
-        $verifyResult = & $verifyEnvPath @verifyParams
+        & $verifyEnvPath @verifyParams
 
         # The Verify-Environment.ps1 script returns a string message on success, not an object
         # So we need to check if it completed without throwing an error
@@ -604,6 +615,10 @@ function Invoke-TDDWorkflow {
                 $runTestsParams['ExtensionId'] = $ExtensionId
             }
 
+            if (-not [string]::IsNullOrWhiteSpace($TestCodeunitRange)) {
+                $runTestsParams['TestCodeunitRange'] = $TestCodeunitRange
+            }
+
             if ($Detailed) {
                 $runTestsParams['Detailed'] = $true
             }
@@ -713,6 +728,7 @@ $result = Invoke-TDDWorkflow -Config $config `
     -TestCodeunit $TestCodeunit `
     -TestFunction $TestFunction `
     -ExtensionId $ExtensionId `
+    -TestCodeunitRange $TestCodeunitRange `
     -Detailed:$Detailed `
     -ShowPassed:$ShowPassed
 
