@@ -277,7 +277,7 @@ function Compile-MainApp {
 
         # First, prepare the source code
         Write-InfoMessage "Preparing source code for main app..."
-        $prepareAppPath = Join-Path -Path $scriptDir -ChildPath "Prepare-AppSource.ps1"
+        $prepareAppPath = Join-Path -Path $scriptDir -ChildPath "workflow\Prepare-AppSource.ps1"
         if (-not (Test-Path -Path $prepareAppPath)) {
             throw "Prepare-AppSource.ps1 not found at path: $prepareAppPath"
         }
