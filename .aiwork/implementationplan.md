@@ -22,16 +22,16 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 - [x] Created reference documentation for parameter usage
 
 ### Task 2: Add TestCodeunitRange Parameter to Run-Tests.ps1
-**Status:** [ ]
+**Status:** [x]
 
 **Prompt:** Add the `TestCodeunitRange` parameter to the `scripts\workflow\Run-Tests.ps1` script. Update both the script-level parameters section and the `Invoke-RunTest` function parameters. Include proper parameter documentation and help text.
 
 **Verification Criteria:**
-- [ ] `TestCodeunitRange` parameter added to script parameters with `[Parameter(Mandatory = $false)]`
-- [ ] Parameter added to `Invoke-RunTest` function with default empty string value
-- [ ] Parameter documentation updated in script header `.PARAMETER` section
-- [ ] Help text includes description of the new parameter
-- [ ] PSScriptAnalyzer shows no errors for the parameter definition
+- [x] `TestCodeunitRange` parameter added to script parameters with `[Parameter(Mandatory = $false)]`
+- [x] Parameter added to `Invoke-RunTest` function with default empty string value
+- [x] Parameter documentation updated in script header `.PARAMETER` section
+- [x] Help text includes description of the new parameter
+- [x] PSScriptAnalyzer shows no errors for the parameter definition
 
 ### Task 3: Create JSON Reading Helper Function
 **Status:** [ ]

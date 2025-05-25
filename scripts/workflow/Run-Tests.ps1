@@ -25,6 +25,10 @@
 .PARAMETER ExtensionId
     Specifying an extensionId causes the test tool to run all tests in the app with this app id.
     Default is empty (run all tests).
+.PARAMETER TestCodeunitRange
+    A BC-compatible filter string to use for loading test codeunits (similar to -extensionId).
+    If you set this parameter to '*', all test codeunits will be loaded.
+    This parameter is optional and works independently of other test parameters.
 .PARAMETER ResultFile
     Path to the file where test results will be saved. Default is from configuration.
 .PARAMETER Detailed
@@ -45,6 +49,9 @@
 .EXAMPLE
     .\scripts\Run-Tests.ps1 -ExtensionId "12345678-1234-1234-1234-123456789012"
     # Runs all tests in the specified extension
+.EXAMPLE
+    .\scripts\Run-Tests.ps1 -TestCodeunitRange "*"
+    # Loads all test codeunits using the testCodeunitRange parameter
 .EXAMPLE
     .\scripts\Run-Tests.ps1 -ResultFile ".\build\testresults\CustomResults.xml" -Detailed
     # Runs all tests and saves detailed results to the specified file
@@ -75,6 +82,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$ExtensionId = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$TestCodeunitRange = "",
 
     [Parameter(Mandatory = $false)]
     [string]$ResultFile,
@@ -262,6 +272,8 @@ function Invoke-RunTest {
         Name of test function to run.
     .PARAMETER ExtensionId
         Extension ID to run tests for.
+    .PARAMETER TestCodeunitRange
+        A BC-compatible filter string to use for loading test codeunits.
     .PARAMETER ResultFile
         Path to the file where test results will be saved.
     .PARAMETER Detailed
@@ -290,6 +302,9 @@ function Invoke-RunTest {
 
         [Parameter(Mandatory = $false)]
         [string]$ExtensionId = "",
+
+        [Parameter(Mandatory = $false)]
+        [string]$TestCodeunitRange = "",
 
         [Parameter(Mandatory = $false)]
         [string]$ResultFile,
@@ -462,6 +477,12 @@ function Invoke-RunTest {
             }
         }
 
+        # Add test codeunit range if specified
+        if (-not [string]::IsNullOrWhiteSpace($TestCodeunitRange)) {
+            Write-InfoMessage "Test codeunit range: $TestCodeunitRange"
+            $testParams['testCodeunitRange'] = $TestCodeunitRange
+        }
+
         # We already set detailed = $true in the parameters
 
         # Set test runner codeunit ID if specified in config
@@ -493,6 +514,9 @@ function Invoke-RunTest {
         }
         if (-not [string]::IsNullOrWhiteSpace($ExtensionId)) {
             Write-InfoMessage "Extension ID: $ExtensionId"
+        }
+        if (-not [string]::IsNullOrWhiteSpace($TestCodeunitRange)) {
+            Write-InfoMessage "Test codeunit range: $TestCodeunitRange"
         }
         Write-InfoMessage "Results will be saved to: $ResultFile"
 
@@ -825,7 +849,7 @@ function Invoke-RunTest {
 }
 
 # Execute the test run with error handling
-$testResult = Invoke-RunTest -Config $config -ContainerName $ContainerName -TestCodeunit $TestCodeunit -TestFunction $TestFunction -ExtensionId $ExtensionId -ResultFile $ResultFile -Detailed:$Detailed -FailFast:$FailFast -Timeout $Timeout
+$testResult = Invoke-RunTest -Config $config -ContainerName $ContainerName -TestCodeunit $TestCodeunit -TestFunction $TestFunction -ExtensionId $ExtensionId -TestCodeunitRange $TestCodeunitRange -ResultFile $ResultFile -Detailed:$Detailed -FailFast:$FailFast -Timeout $Timeout
 
 # Set the exit code for the script
 if (-not $testResult.Success) {
