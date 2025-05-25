@@ -52,18 +52,18 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 - [x] No hardcoded paths to test directory or app.json file
 
 ### Task 4: Implement Extension ID Resolution Logic
-**Status:** [ ]
+**Status:** [x]
 
 **Prompt:** Modify the extension ID handling logic in `Run-Tests.ps1` to implement the following priority: 1) Use ExtensionId parameter if provided, 2) Read from `test\app.json` if parameter is empty, 3) Throw error if both fail. Use `Resolve-TDDPath` from Common-Functions.ps1 for path resolution.
 
 **Verification Criteria:**
-- [ ] Logic checks if `ExtensionId` parameter is provided and non-empty first
-- [ ] If parameter empty, constructs path to `test\app.json` using `Resolve-TDDPath` and config
-- [ ] Calls `Get-ExtensionIdFromAppJson` function to read from JSON file
-- [ ] Throws descriptive error if both parameter and JSON file fail
-- [ ] Logs informational messages about extension ID source
-- [ ] Extension ID is stored in a variable for later use
-- [ ] Path resolution uses `$Config.SourcePaths.Test` from configuration
+- [x] Logic checks if `ExtensionId` parameter is provided and non-empty first
+- [x] If parameter empty, constructs path to `test\app.json` using `Resolve-TDDPath` and config
+- [x] Calls `Get-ExtensionIdFromAppJson` function to read from JSON file
+- [x] Throws descriptive error if both parameter and JSON file fail
+- [x] Logs informational messages about extension ID source
+- [x] Extension ID is stored in a variable for later use
+- [x] Path resolution uses `$Config.SourcePaths.Test` from configuration
 
 ### Task 5: Update Run-TestsInBcContainer Parameter Handling
 **Status:** [ ]

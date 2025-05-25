@@ -429,7 +429,7 @@ function Invoke-RunTest {
 
         $result.TestCodeunit = $TestCodeunit
         $result.TestFunction = $TestFunction
-        $result.ExtensionId = $ExtensionId
+        # ExtensionId will be set after resolution logic
 
         # Validate result file path
         if ([string]::IsNullOrWhiteSpace($ResultFile)) {
@@ -538,24 +538,55 @@ function Invoke-RunTest {
             } else {
                 "P@ssw0rd"
             }
-            # PSScriptAnalyzer: Suppress PSAvoidUsingConvertToSecureStringWithPlainText - Required for BC container authentication
-            $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force
+            # Required for BC container authentication
+            $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force # PSScriptAnalyzer: Suppress PSAvoidUsingConvertToSecureStringWithPlainText
             $testParams['credential'] = New-Object System.Management.Automation.PSCredential("admin", $defaultPassword)
             Write-InfoMessage "Using default credentials for NavUserPassword authentication."
         }
 
-        # Add extension ID if specified
+        # Resolve extension ID using priority logic:
+        # 1. Use ExtensionId parameter if provided
+        # 2. Read from test\app.json if parameter is empty
+        # 3. Throw error if both fail
+        $resolvedExtensionId = ""
+
         if (-not [string]::IsNullOrWhiteSpace($ExtensionId)) {
-            Write-InfoMessage "Extension ID: $ExtensionId"
-            $testParams['extensionId'] = $ExtensionId
+            # Priority 1: Use provided ExtensionId parameter
+            $resolvedExtensionId = $ExtensionId
+            Write-InfoMessage "Using extension ID from parameter: $resolvedExtensionId"
+        }
+        else {
+            # Priority 2: Read from test\app.json
+            try {
+                Write-InfoMessage "ExtensionId parameter not provided, attempting to read from test\app.json..."
+                $resolvedExtensionId = Get-ExtensionIdFromAppJson -Config $Config
+                Write-InfoMessage "Successfully resolved extension ID from test\app.json: $resolvedExtensionId"
+            }
+            catch {
+                # Priority 3: Throw error if both fail
+                $errorMessage = "Failed to resolve extension ID. ExtensionId parameter was not provided and could not read from test\app.json. Error: $($_.Exception.Message)"
+                Write-ErrorMessage $errorMessage "Provide the ExtensionId parameter or ensure test\app.json exists with a valid 'id' field."
+                throw $errorMessage
+            }
+        }
+
+        # Store the resolved extension ID in the result object
+        $result.ExtensionId = $resolvedExtensionId
+
+        # Add resolved extension ID to test parameters
+        if (-not [string]::IsNullOrWhiteSpace($resolvedExtensionId)) {
+            Write-InfoMessage "Using extension ID for test execution: $resolvedExtensionId"
+            $testParams['extensionId'] = $resolvedExtensionId
 
             # When using extensionId, we need to make sure testCodeunit and testFunction are not set
             # as they are mutually exclusive with extensionId in Run-TestsInBcContainer
             if ($testParams.ContainsKey('testCodeunit')) {
                 $testParams.Remove('testCodeunit')
+                Write-InfoMessage "Removed testCodeunit parameter (mutually exclusive with extensionId)"
             }
             if ($testParams.ContainsKey('testFunction')) {
                 $testParams.Remove('testFunction')
+                Write-InfoMessage "Removed testFunction parameter (mutually exclusive with extensionId)"
             }
         }
 
@@ -594,8 +625,8 @@ function Invoke-RunTest {
         if (-not [string]::IsNullOrWhiteSpace($TestFunction) -and $TestFunction -ne "*") {
             Write-InfoMessage "Test function: $TestFunction"
         }
-        if (-not [string]::IsNullOrWhiteSpace($ExtensionId)) {
-            Write-InfoMessage "Extension ID: $ExtensionId"
+        if (-not [string]::IsNullOrWhiteSpace($resolvedExtensionId)) {
+            Write-InfoMessage "Extension ID: $resolvedExtensionId"
         }
         if (-not [string]::IsNullOrWhiteSpace($TestCodeunitRange)) {
             Write-InfoMessage "Test codeunit range: $TestCodeunitRange"
