@@ -644,78 +644,6 @@ function Invoke-RunTest {
         # Run the tests and capture the output
         Write-InfoMessage "Running tests in container '$ContainerName'..."
 
-        # First, check if there are any tests in the container
-        Write-InfoMessage "Checking for available tests in container..."
-        $availableTests = $null
-        try {
-            $availableTests = Get-TestsFromBcContainer -containerName $ContainerName -credential $testParams['credential']
-            if ($availableTests -and $availableTests.Count -gt 0) {
-                # Just log the available test codeunits for now
-                # We'll get more detailed information after running the tests
-                Write-InfoMessage "Found $($availableTests.Count) test codeunit(s) in container."
-                Write-InfoMessage "Note: Each test codeunit may contain multiple test functions."
-                foreach ($test in $availableTests) {
-                    Write-InfoMessage "  - $($test.TestCodeunit): $($test.TestFunction)"
-                }
-            } else {
-                Write-WarningMessage "No tests found in container. Make sure the test app is properly published and contains test codeunits."
-                Write-InfoMessage "Checking published extensions in container..."
-                $publishedApps = Invoke-ScriptInBcContainer -containerName $ContainerName -scriptblock {
-                    Get-NAVAppInfo -ServerInstance BC -Tenant default | Select-Object Name, Publisher, Version, IsInstalled
-                }
-
-                if ($publishedApps) {
-                    Write-InfoMessage "Published extensions in container:"
-                    foreach ($app in $publishedApps) {
-                        Write-InfoMessage "  - $($app.Publisher)_$($app.Name)_$($app.Version) (Installed: $($app.IsInstalled))"
-                    }
-
-                    # Check if the test app is installed
-                    $testApp = $publishedApps | Where-Object { $_.Name -like "*test*" }
-                    if ($testApp) {
-                        Write-InfoMessage "Test app found: $($testApp.Publisher)_$($testApp.Name)_$($testApp.Version)"
-                        Write-InfoMessage "Checking test codeunits in the test app..."
-
-                        # Try to get test codeunits directly
-                        try {
-                            $testCodeunits = Invoke-ScriptInBcContainer -containerName $ContainerName -scriptblock {
-                                param($testAppName)
-                                Get-NAVAppObjectMetadata -ServerInstance BC -Tenant default -AppName $testAppName |
-                                    Where-Object { $_.ObjectType -eq 'Codeunit' -and $_.SubType -eq 'Test' } |
-                                    Select-Object ObjectName, ObjectID
-                            } -argumentList $testApp.Name
-
-                            if ($testCodeunits -and $testCodeunits.Count -gt 0) {
-                                Write-InfoMessage "Found $($testCodeunits.Count) test codeunit(s) in the test app:"
-                                foreach ($codeunit in $testCodeunits) {
-                                    Write-InfoMessage "  - $($codeunit.ObjectName) (ID: $($codeunit.ObjectID))"
-                                }
-                                Write-InfoMessage "However, these test codeunits are not being recognized by the test runner."
-                            } else {
-                                Write-WarningMessage "No test codeunits found in the test app. Make sure your test codeunits have Subtype = Test;"
-                            }
-                        } catch {
-                            Write-WarningMessage "Failed to get test codeunits from the test app: $_"
-                        }
-                    } else {
-                        Write-WarningMessage "No test app found in the published extensions."
-                    }
-                } else {
-                    Write-WarningMessage "No published extensions found in container."
-                }
-
-                # Provide guidance on fixing test issues
-                Write-InfoMessage "Possible reasons for tests not being found:"
-                Write-InfoMessage "1. Test codeunits don't have 'Subtype = Test;' property"
-                Write-InfoMessage "2. Test functions don't have the [Test] attribute"
-                Write-InfoMessage "3. The test app wasn't properly published or installed"
-                Write-InfoMessage "4. The test app doesn't have the correct dependencies"
-                Write-InfoMessage "5. The test app's ID ranges don't match the codeunit IDs"
-            }
-        } catch {
-            Write-WarningMessage "Failed to get available tests from container: $_"
-        }
-
         # Run the tests
         $testOutput = Invoke-ScriptWithErrorHandling -ScriptBlock {
             Run-TestsInBcContainer @testParams
@@ -728,15 +656,18 @@ function Invoke-RunTest {
         # Process test results from the output
         $result.Success = $testOutput
 
-        # Get test details from the container
-        Write-InfoMessage "Getting test details from container..."
+        # Parse test results from output if available
+        Write-InfoMessage "Processing test results..."
         try {
-            # Use the same credentials for getting test details
-            $tests = Get-TestsFromBcContainer -containerName $ContainerName -credential $testParams['credential']
+            $tests = @()
+            $totalTests = 0
+            $passedTests = 0
+            $failedTests = 0
+            $skippedTests = 0
 
-            # Parse the test output to extract test results if Get-TestsFromBcContainer doesn't return complete results
-            if (-not $tests -or $tests.Count -eq 0 -or [string]::IsNullOrEmpty($tests[0].TestFunction)) {
-                Write-InfoMessage "No detailed test results returned from Get-TestsFromBcContainer, parsing test output..."
+            # Parse the test output to extract test results
+            if ($testOutput) {
+                Write-InfoMessage "Parsing test output for results..."
 
                 # Create a regex pattern to extract test information from the output
                 $testOutputLines = $testOutput.ToString() -split "`r?`n"
@@ -820,38 +751,36 @@ function Invoke-RunTest {
                 if ($testResults.Count -gt 0) {
                     $tests = $testResults
                     Write-InfoMessage "Parsed $($tests.Count) test function(s) from output."
-                }
-            }
 
-            if ($tests -and $tests.Count -gt 0) {
-                $totalTests = $tests.Count
-                $passedTests = ($tests | Where-Object { $_.Result -eq "Success" }).Count
-                $failedTests = ($tests | Where-Object { $_.Result -eq "Failure" }).Count
-                $skippedTests = ($tests | Where-Object { $_.Result -eq "Skipped" }).Count
-            } else {
-                # If no test details were returned but the test output indicates success,
-                # we'll create a synthetic test result based on the output
-                if ($testOutput -eq $true) {
-                    Write-InfoMessage "No detailed test results returned, but tests were run successfully. Analyzing test output..."
-                    $totalTests = 1
-                    $passedTests = 1
-                    $failedTests = 0
-                    $skippedTests = 0
-
-                    # Create a synthetic test result
-                    $tests = @(
-                        [PSCustomObject]@{
-                            TestCodeunit = $TestCodeunit
-                            TestFunction = "Unknown"
-                            Result = "Success"
-                            ErrorMessage = ""
-                        }
-                    )
+                    $totalTests = $tests.Count
+                    $passedTests = ($tests | Where-Object { $_.Result -eq "Success" }).Count
+                    $failedTests = ($tests | Where-Object { $_.Result -eq "Failure" }).Count
+                    $skippedTests = ($tests | Where-Object { $_.Result -eq "Skipped" }).Count
                 } else {
-                    $totalTests = 0
-                    $passedTests = 0
-                    $failedTests = 0
-                    $skippedTests = 0
+                    # If no test details were parsed but the test output indicates success,
+                    # we'll create a synthetic test result based on the output
+                    if ($testOutput -eq $true) {
+                        Write-InfoMessage "No detailed test results parsed, but tests were run successfully."
+                        $totalTests = 1
+                        $passedTests = 1
+                        $failedTests = 0
+                        $skippedTests = 0
+
+                        # Create a synthetic test result
+                        $tests = @(
+                            [PSCustomObject]@{
+                                TestCodeunit = $TestCodeunit
+                                TestFunction = "Unknown"
+                                Result = "Success"
+                                ErrorMessage = ""
+                            }
+                        )
+                    } else {
+                        $totalTests = 0
+                        $passedTests = 0
+                        $failedTests = 0
+                        $skippedTests = 0
+                    }
                 }
             }
 
@@ -896,14 +825,13 @@ function Invoke-RunTest {
             # Display failed tests if any
             if ($failedTests -gt 0) {
                 Write-SectionHeader "Failed Tests"
-                $failedTests = $tests | Where-Object { $_.Result -eq "Failure" }
-                foreach ($test in $failedTests) {
+                $failedTestResults = $tests | Where-Object { $_.Result -eq "Failure" }
+                foreach ($test in $failedTestResults) {
                     Write-ErrorMessage "$($test.TestCodeunit): $($test.TestFunction)" "$($test.ErrorMessage)"
                 }
             }
 
             # Set success based on test results
-
             if ($result.AllTestsPassed) {
                 $result.Message = "All tests passed successfully."
                 Write-SuccessMessage "All tests passed successfully."
@@ -952,9 +880,9 @@ function Invoke-RunTest {
                 }
             }
         } catch {
-            Write-WarningMessage "Failed to get test details from container: $_"
+            Write-WarningMessage "Failed to parse test results: $_"
             $result.Success = $testOutput
-            $result.Message = "Tests completed, but failed to get test details."
+            $result.Message = "Tests completed, but failed to parse test details."
         }
 
         return $result
