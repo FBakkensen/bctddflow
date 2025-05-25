@@ -10,7 +10,7 @@
     This script uses common utility functions from Common-Functions.ps1 and configuration
     from TDDConfig.psd1 for consistent functionality across the TDD workflow scripts.
 .PARAMETER ConfigPath
-    Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
+    Path to the configuration file. Default is "config\TDDConfig.psd1" relative to the scripts root directory.
 .PARAMETER Parameter1
     Description of Parameter1.
 .PARAMETER Parameter2
@@ -265,7 +265,7 @@ HOW TO USE THIS TEMPLATE:
 BEST PRACTICES:
 
 1. Use the common functions from Common-Functions.ps1 for consistent behavior.
-2. Use the configuration from TDDConfig.psd1 for settings.
+2. Use the configuration from config\TDDConfig.psd1 for settings.
 3. Handle errors gracefully using Invoke-ScriptWithErrorHandling.
 4. Validate all parameters and provide sensible defaults.
 5. Use Write-InfoMessage, Write-SuccessMessage, Write-ErrorMessage, and Write-WarningMessage for output.

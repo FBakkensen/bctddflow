@@ -9,7 +9,7 @@
     This script uses common utility functions from Common-Functions.ps1 for consistent functionality
     across the TDD workflow scripts.
 .PARAMETER ConfigPath
-    Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
+    Path to the configuration file. Default is "config\TDDConfig.psd1" relative to the scripts root directory.
 .PARAMETER OverrideSettings
     A hashtable of settings to override from the configuration file.
 .PARAMETER RequiredSettings

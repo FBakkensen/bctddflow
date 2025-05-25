@@ -14,7 +14,7 @@
     This script uses the centralized configuration management provided by Get-TDDConfiguration.ps1
     and common utility functions from Common-Functions.ps1.
 .PARAMETER ConfigPath
-    Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
+    Path to the configuration file. Default is "config\TDDConfig.psd1" relative to the scripts root directory.
 .EXAMPLE
     .\Verify-Environment.ps1
     # Uses the default configuration file path
@@ -55,7 +55,7 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 
 # Set default config path if not provided
 if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "..\config\TDDConfig.psd1"
     # We can't use Write-InfoMessage yet as Common-Functions.ps1 isn't loaded
     Write-Verbose "Using default configuration path: $ConfigPath"
 }
