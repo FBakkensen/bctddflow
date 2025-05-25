@@ -9,7 +9,7 @@
     This script uses common utility functions from Common-Functions.ps1 for consistent functionality
     across the TDD workflow scripts.
 .PARAMETER ConfigPath
-    Path to the configuration file. Default is "config\TDDConfig.psd1" relative to the scripts root directory.
+    Path to the configuration file. Default is "..\config\TDDConfig.psd1" relative to the lib directory (scripts root/config/TDDConfig.psd1).
 .PARAMETER OverrideSettings
     A hashtable of settings to override from the configuration file.
 .PARAMETER RequiredSettings
@@ -17,19 +17,19 @@
 .PARAMETER ValidateOnly
     If specified, only validates the configuration without returning it.
 .EXAMPLE
-    $config = .\scripts\Get-TDDConfiguration.ps1
+    $config = .\scripts\lib\Get-TDDConfiguration.ps1
     # Loads the default configuration file and returns the configuration object
 .EXAMPLE
-    $config = .\scripts\Get-TDDConfiguration.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
+    $config = .\scripts\lib\Get-TDDConfiguration.ps1 -ConfigPath "C:\MyProject\CustomConfig.psd1"
     # Loads a custom configuration file and returns the configuration object
 .EXAMPLE
-    $config = .\scripts\Get-TDDConfiguration.ps1 -OverrideSettings @{ ContainerName = "mycontainer"; Auth = "Windows" }
+    $config = .\scripts\lib\Get-TDDConfiguration.ps1 -OverrideSettings @{ ContainerName = "mycontainer"; Auth = "Windows" }
     # Loads the default configuration file, overrides specific settings, and returns the configuration object
 .EXAMPLE
-    $config = .\scripts\Get-TDDConfiguration.ps1 -RequiredSettings @("ContainerName", "Auth", "MemoryLimit")
+    $config = .\scripts\lib\Get-TDDConfiguration.ps1 -RequiredSettings @("ContainerName", "Auth", "MemoryLimit")
     # Loads the default configuration file, validates that required settings are present, and returns the configuration object
 .EXAMPLE
-    $isValid = .\scripts\Get-TDDConfiguration.ps1 -ValidateOnly
+    $isValid = .\scripts\lib\Get-TDDConfiguration.ps1 -ValidateOnly
     # Validates the configuration without returning it, returns $true if valid, $false otherwise
 .NOTES
     This script is part of the Business Central TDD workflow.
@@ -65,7 +65,7 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 
 if ([string]::IsNullOrWhiteSpace($scriptPath)) {
     # Hard-coded fallback if both are empty
-    $scriptDir = "d:\repos\bctddflow\scripts"
+    $scriptDir = "d:\repos\bctddflow\scripts\lib"
     Write-Warning "Using hard-coded script directory: $scriptDir"
 } else {
     $scriptDir = Split-Path -Parent $scriptPath
@@ -231,7 +231,7 @@ function Get-TDDConfiguration {
             $importedConfig = Import-PowerShellDataFile -Path $ConfigPath -ErrorAction Stop
 
             # Merge with default configuration (imported config takes precedence)
-            $config = Merge-Hashtables -BaseTable $config -OverrideTable $importedConfig
+            $config = Merge-Hashtable -BaseTable $config -OverrideTable $importedConfig
 
             Write-InfoMessage "Configuration loaded successfully."
         } else {
@@ -245,7 +245,7 @@ function Get-TDDConfiguration {
     # Apply override settings if provided
     if ($OverrideSettings -and $OverrideSettings.Count -gt 0) {
         Write-InfoMessage "Applying override settings..."
-        $config = Merge-Hashtables -BaseTable $config -OverrideTable $OverrideSettings
+        $config = Merge-Hashtable -BaseTable $config -OverrideTable $OverrideSettings
         Write-InfoMessage "Override settings applied successfully."
     }
 
@@ -304,7 +304,7 @@ function Get-TDDConfiguration {
     }
 }
 
-function Merge-Hashtables {
+function Merge-Hashtable {
     <#
     .SYNOPSIS
         Merges two hashtables with deep merging of nested hashtables.
@@ -336,7 +336,7 @@ function Merge-Hashtables {
         if ($result.ContainsKey($key)) {
             # If both values are hashtables, merge them recursively
             if ($result[$key] -is [hashtable] -and $OverrideTable[$key] -is [hashtable]) {
-                $result[$key] = Merge-Hashtables -BaseTable $result[$key] -OverrideTable $OverrideTable[$key]
+                $result[$key] = Merge-Hashtable -BaseTable $result[$key] -OverrideTable $OverrideTable[$key]
             } else {
                 # Otherwise, override the value
                 $result[$key] = $OverrideTable[$key]

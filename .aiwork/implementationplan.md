@@ -216,7 +216,7 @@ Test configuration loading from various script locations.
 - No configuration-related errors occur
 - All settings work as expected
 
-#### 12. [ ] Update Get-TDDConfiguration.ps1 default paths
+#### 12. [x] Update Get-TDDConfiguration.ps1 default paths
 **Prompt:**
 ```
 Update the `Get-TDDConfiguration.ps1` script to handle the new default path for the configuration file:
