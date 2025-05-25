@@ -81,7 +81,7 @@ if (-not (Test-Path -Path $commonFunctionsPath)) {
 
 # Set default config path if not provided
 if (-not $PSBoundParameters.ContainsKey('ConfigPath') -or [string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "TDDConfig.psd1"
+    $ConfigPath = Join-Path -Path $scriptDir -ChildPath "..\config\TDDConfig.psd1"
     Write-InfoMessage "Using default configuration path: $ConfigPath"
 
     # Update the PSBoundParameters to include the ConfigPath

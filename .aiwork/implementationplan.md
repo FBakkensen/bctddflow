@@ -85,7 +85,7 @@ Ensure all folders are created with proper permissions and verify they exist.
 - No existing files are affected
 - Original flat structure remains intact
 
-#### 4. [ ] Move library functions to lib folder
+#### 4. [x] Move library functions to lib folder
 **Prompt:**
 ```
 Move the following scripts to the `scripts\lib\` folder:
