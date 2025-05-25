@@ -539,7 +539,8 @@ function Invoke-RunTest {
                 "P@ssw0rd"
             }
             # Required for BC container authentication
-            $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force # PSScriptAnalyzer: Suppress PSAvoidUsingConvertToSecureStringWithPlainText
+            # PSScriptAnalyzer suppression: This is required for BC container authentication
+            $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force
             $testParams['credential'] = New-Object System.Management.Automation.PSCredential("admin", $defaultPassword)
             Write-InfoMessage "Using default credentials for NavUserPassword authentication."
         }
@@ -573,28 +574,40 @@ function Invoke-RunTest {
         # Store the resolved extension ID in the result object
         $result.ExtensionId = $resolvedExtensionId
 
-        # Add resolved extension ID to test parameters
-        if (-not [string]::IsNullOrWhiteSpace($resolvedExtensionId)) {
-            Write-InfoMessage "Using extension ID for test execution: $resolvedExtensionId"
-            $testParams['extensionId'] = $resolvedExtensionId
-
-            # When using extensionId, we need to make sure testCodeunit and testFunction are not set
-            # as they are mutually exclusive with extensionId in Run-TestsInBcContainer
-            if ($testParams.ContainsKey('testCodeunit')) {
-                $testParams.Remove('testCodeunit')
-                Write-InfoMessage "Removed testCodeunit parameter (mutually exclusive with extensionId)"
-            }
-            if ($testParams.ContainsKey('testFunction')) {
-                $testParams.Remove('testFunction')
-                Write-InfoMessage "Removed testFunction parameter (mutually exclusive with extensionId)"
-            }
+        # Always add resolved extension ID to test parameters (now required)
+        if ([string]::IsNullOrWhiteSpace($resolvedExtensionId)) {
+            throw "Extension ID is required but could not be resolved. Please provide ExtensionId parameter or ensure test\app.json exists with a valid 'id' field."
         }
 
-        # Add test codeunit range if specified
+        Write-InfoMessage "Using extension ID for test execution: $resolvedExtensionId"
+        $testParams['extensionId'] = $resolvedExtensionId
+
+        # Add testCodeunitRange parameter when provided and non-empty
         if (-not [string]::IsNullOrWhiteSpace($TestCodeunitRange)) {
-            Write-InfoMessage "Test codeunit range: $TestCodeunitRange"
             $testParams['testCodeunitRange'] = $TestCodeunitRange
+            Write-InfoMessage "Using testCodeunitRange parameter: $TestCodeunitRange"
         }
+
+        # Log all active filtering parameters for transparency
+        $activeFilters = @()
+        if ($testParams.ContainsKey('extensionId')) {
+            $activeFilters += "extensionId: $($testParams['extensionId'])"
+        }
+        if ($testParams.ContainsKey('testCodeunit') -and $testParams['testCodeunit'] -ne "*") {
+            $activeFilters += "testCodeunit: $($testParams['testCodeunit'])"
+        }
+        if ($testParams.ContainsKey('testFunction') -and $testParams['testFunction'] -ne "*") {
+            $activeFilters += "testFunction: $($testParams['testFunction'])"
+        }
+        if ($testParams.ContainsKey('testCodeunitRange')) {
+            $activeFilters += "testCodeunitRange: $($testParams['testCodeunitRange'])"
+        }
+
+        if ($activeFilters.Count -gt 0) {
+            Write-InfoMessage "Active test filtering parameters: $($activeFilters -join ', ')"
+        }
+
+
 
         # We already set detailed = $true in the parameters
 
@@ -619,18 +632,6 @@ function Invoke-RunTest {
 
         # Run tests with error handling
         Write-InfoMessage "Running tests in container '$ContainerName'..."
-        if (-not [string]::IsNullOrWhiteSpace($TestCodeunit) -and $TestCodeunit -ne "*") {
-            Write-InfoMessage "Test codeunit: $TestCodeunit"
-        }
-        if (-not [string]::IsNullOrWhiteSpace($TestFunction) -and $TestFunction -ne "*") {
-            Write-InfoMessage "Test function: $TestFunction"
-        }
-        if (-not [string]::IsNullOrWhiteSpace($resolvedExtensionId)) {
-            Write-InfoMessage "Extension ID: $resolvedExtensionId"
-        }
-        if (-not [string]::IsNullOrWhiteSpace($TestCodeunitRange)) {
-            Write-InfoMessage "Test codeunit range: $TestCodeunitRange"
-        }
         Write-InfoMessage "Results will be saved to: $ResultFile"
 
         $startTime = Get-Date

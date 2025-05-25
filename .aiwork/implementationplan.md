@@ -66,18 +66,19 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 - [x] Path resolution uses `$Config.SourcePaths.Test` from configuration
 
 ### Task 5: Update Run-TestsInBcContainer Parameter Handling
-**Status:** [ ]
+**Status:** [x]
 
-**Prompt:** Update the parameter handling logic for `Run-TestsInBcContainer` in `Run-Tests.ps1` to always include the `extensionId` parameter (now required) and add support for the optional `testCodeunitRange` parameter. Maintain existing logic for removing `testCodeunit` and `testFunction` when `extensionId` is used.
+**Prompt:** Update the parameter handling logic for `Run-TestsInBcContainer` in `Run-Tests.ps1` to always include the `extensionId` parameter (now required) and add support for the optional `testCodeunitRange` parameter. All parameters (`extensionId`, `testCodeunit`, `testFunction`, and `testCodeunitRange`) can be used independently or in combination to provide cumulative filtering of test execution.
 
 **Verification Criteria:**
-- [ ] `extensionId` parameter is always added to `$testParams` hashtable
-- [ ] `testCodeunitRange` parameter added when provided and non-empty
-- [ ] Existing logic maintained for removing `testCodeunit` when `extensionId` is used
-- [ ] Existing logic maintained for removing `testFunction` when `extensionId` is used
-- [ ] Parameter logging updated to show `testCodeunitRange` when used
-- [ ] Extension ID logging shows the resolved value and source
-- [ ] Error thrown if extension ID cannot be determined
+- [x] `extensionId` parameter is always added to `$testParams` hashtable
+- [x] `testCodeunitRange` parameter added when provided and non-empty
+- [x] Existing `testCodeunit` parameter kept when provided (do NOT remove it)
+- [x] Existing `testFunction` parameter kept when provided (do NOT remove it)
+- [x] Parameter logging updated to show all active filtering parameters including `testCodeunitRange`
+- [x] Extension ID logging shows the resolved value and source
+- [x] Error thrown if extension ID cannot be determined
+- [x] All parameters work in combination for precise test filtering
 
 ### Task 6: Update Start-TDDWorkflow.ps1 Parameter Support
 **Status:** [ ]
