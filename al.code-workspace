@@ -16,7 +16,7 @@
       "path": ".AL-Go"
     },
     {
-      "path": ".build/testresults"
+      "path": "build/testresults"
     }
   ],
   "settings": {}
