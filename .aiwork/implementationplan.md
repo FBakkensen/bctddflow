@@ -11,15 +11,15 @@ This plan outlines the steps needed to modify the `Run-Tests.ps1` script to meet
 ## Implementation Tasks
 
 ### Task 1: Research BcContainerHelper Parameters
-**Status:** [ ]
+**Status:** [x]
 
 **Prompt:** Research the BcContainerHelper module's `Run-TestsInBcContainer` cmdlet to verify the exact parameter names and compatibility rules. Specifically check if `testCodeunitRange` is a valid parameter and confirm which parameters are mutually exclusive with `extensionId`.
 
 **Verification Criteria:**
-- [ ] Confirmed exact parameter name for test codeunit range (e.g., `testCodeunitRange`, `testRange`, etc.)
-- [ ] Verified parameter compatibility when `extensionId` is used
-- [ ] Documented mutual exclusivity rules for parameters
-- [ ] Created reference documentation for parameter usage
+- [x] Confirmed exact parameter name for test codeunit range (e.g., `testCodeunitRange`, `testRange`, etc.)
+- [x] Verified parameter compatibility when `extensionId` is used
+- [x] Documented mutual exclusivity rules for parameters
+- [x] Created reference documentation for parameter usage
 
 ### Task 2: Add TestCodeunitRange Parameter to Run-Tests.ps1
 **Status:** [ ]
