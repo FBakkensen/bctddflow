@@ -150,7 +150,7 @@ Update any scripts that reference these files to use the new paths.
 
 ### Phase 3: Update Script References
 
-#### 8. [ ] Update dot-sourcing statements in all remaining root scripts
+#### 8. [x] Update dot-sourcing statements in all remaining root scripts
 **Prompt:**
 ```
 Update the dot-sourcing statements in the root-level scripts to reference the new locations:
