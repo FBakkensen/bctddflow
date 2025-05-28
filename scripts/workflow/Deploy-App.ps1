@@ -5,13 +5,13 @@
     This script deploys a compiled Business Central app package (.app file) to a container by:
     1. Taking parameters for compiled app file path (.app file), container name, and app type (main/test)
     2. Verifying the container exists and is running using structured Docker output formats
-    3. Using BcContainerHelper to publish the specified app to the container with proper error handling
-    4. Applying publishing settings from the configuration (scope, sync mode, timeout)
-    5. Handling dependencies appropriately (test app depends on main app)
+    3. Using a single BcContainerHelper Publish-BcContainerApp command with -replacePackageId to automatically handle existing app versions
+    4. Applying publishing settings from the configuration (scope, sync mode, skip verification)
+    5. Using -skipVerification, -sync, -install, -syncMode, -useDevEndpoint, and -replacePackageId parameters for optimal deployment
     6. Returning a strongly-typed [pscustomobject] with deployment results
 
-    This script uses common utility functions from Common-Functions.ps1 and configuration
-    from TDDConfig.psd1 for consistent functionality across the TDD workflow scripts.
+    This simplified approach eliminates the need for manual dependency checking and multi-step uninstall/unpublish operations.
+    The script uses common utility functions from Common-Functions.ps1 and configuration from TDDConfig.psd1 for consistent functionality.
 .PARAMETER ConfigPath
     Path to the configuration file. Default is "scripts\TDDConfig.psd1" in the same directory as this script.
 .PARAMETER AppPath
@@ -34,10 +34,11 @@
 
     Author: AI Assistant
     Date: 2023-11-15
-    Version: 1.0
+    Version: 2.0
 
     Change Log:
-    1.0 - Initial version
+    1.0 - Initial version with complex multi-step deployment approach
+    2.0 - Refactored to use single Publish-BcContainerApp command with -replacePackageId for simplified deployment
 #>
 
 [CmdletBinding()]
@@ -284,319 +285,80 @@ function Invoke-DeployApp {
             }
         }
 
-        # First, try to get information about the app we're about to publish
-        Write-InfoMessage "Checking for existing app installation..."
-
-        # Extract app information from the app file
+        # Extract basic app information for logging purposes (optional, for display only)
         $appInfo = Invoke-ScriptWithErrorHandling -ScriptBlock {
-            # Try different methods to get app info
             try {
-                # First try Get-NavAppInfoFromAppFile (newer function)
+                # Try to get basic app info for logging
                 $appInfo = Get-NavAppInfoFromAppFile -Path $resolvedAppPath
                 return $appInfo
             } catch {
-                try {
-                    # Then try Get-BcContainerAppInfo with the appFile parameter
-                    $appInfo = Get-BcContainerAppInfo -containerName $ContainerName -appFile $resolvedAppPath
-                    return $appInfo
-                } catch {
-                    # Finally, try to extract app.json from the app file
-                    $appInfo = Get-AppJsonFromAppFile -appFile $resolvedAppPath
-                    # Convert to object with similar properties
-                    return [PSCustomObject]@{
-                        Name = $appInfo.name
-                        Publisher = $appInfo.publisher
-                        Version = $appInfo.version
-                        AppId = $appInfo.id
-                    }
-                }
+                # If we can't get app info, continue anyway - it's just for logging
+                Write-InfoMessage "Could not extract app information for logging purposes, continuing with deployment..."
+                return $null
             }
         } -ErrorMessage "Failed to get app information from file" -ContinueOnError
 
         if ($appInfo) {
             Write-InfoMessage "App details: $($appInfo.Publisher)_$($appInfo.Name)_$($appInfo.Version)"
-
-            # Get all installed apps
-            $allInstalledApps = Invoke-ScriptWithErrorHandling -ScriptBlock {
-                $existingApps = Get-BcContainerAppInfo -containerName $ContainerName -tenant default -tenantSpecificProperties
-                return $existingApps
-            } -ErrorMessage "Failed to get installed apps" -ContinueOnError
-
-            # Check if the exact version of the app is already installed
-            $existingApp = $null
-            if ($allInstalledApps) {
-                $existingApp = $allInstalledApps | Where-Object {
-                    $_.Name -eq $appInfo.Name -and
-                    $_.Publisher -eq $appInfo.Publisher -and
-                    $_.Version -eq $appInfo.Version
-                }
-            }
-
-            # Also check if any version of the app is installed
-            $existingAppAnyVersion = $null
-            if ($allInstalledApps) {
-                $existingAppAnyVersion = $allInstalledApps | Where-Object {
-                    $_.Name -eq $appInfo.Name -and
-                    $_.Publisher -eq $appInfo.Publisher
-                }
-            }
-
-            # Get all versions of the app
-            $allVersionsOfApp = $null
-            if ($allInstalledApps) {
-                $allVersionsOfApp = $allInstalledApps | Where-Object {
-                    $_.Name -eq $appInfo.Name -and
-                    $_.Publisher -eq $appInfo.Publisher
-                } | Sort-Object -Property Version -Descending
-
-                if ($allVersionsOfApp -and $allVersionsOfApp.Count -gt 0) {
-                    Write-InfoMessage "Found $($allVersionsOfApp.Count) version(s) of app $($appInfo.Publisher)_$($appInfo.Name) installed:"
-                    foreach ($versionedApp in $allVersionsOfApp) {
-                        Write-InfoMessage "  - Version: $($versionedApp.Version)"
-                    }
-                }
-            }
-
-            # If any version of the app exists, uninstall it first
-            if ($existingAppAnyVersion) {
-                if ($existingApp) {
-                    Write-InfoMessage "App $($appInfo.Publisher)_$($appInfo.Name)_$($appInfo.Version) is already installed. Uninstalling..."
-                } else {
-                    Write-InfoMessage "Different version of app $($appInfo.Publisher)_$($appInfo.Name) is installed (found version $($existingAppAnyVersion.Version)). Uninstalling..."
-                }
-
-                # Check for dependencies before uninstalling
-                $dependencies = Invoke-ScriptWithErrorHandling -ScriptBlock {
-                    $allApps = Get-BcContainerAppInfo -containerName $ContainerName -tenant default -tenantSpecificProperties
-                    $dependentApps = @()
-
-                    foreach ($app in $allApps) {
-                        if ($app.Name -eq $appInfo.Name -and $app.Publisher -eq $appInfo.Publisher) {
-                            # Skip the app itself
-                            continue
-                        }
-
-                        # Check if this app depends on the app we're trying to uninstall
-                        $dependsOn = $false
-                        if ($app.Dependencies) {
-                            foreach ($dependency in $app.Dependencies.Split(',')) {
-                                $dependency = $dependency.Trim()
-                                if ($dependency -match "$($appInfo.Publisher)_$($appInfo.Name)" -and -not [string]::IsNullOrWhiteSpace($dependency)) {
-                                    $dependsOn = $true
-                                    break
-                                }
-                            }
-                        }
-
-                        if ($dependsOn) {
-                            $dependentApps += $app
-                        }
-                    }
-
-                    return $dependentApps
-                } -ErrorMessage "Failed to check for dependencies" -ContinueOnError
-
-                if ($dependencies -and $dependencies.Count -gt 0) {
-                    Write-InfoMessage "Found $($dependencies.Count) dependent app(s). Uninstalling dependencies first..."
-
-                    foreach ($dependency in $dependencies) {
-                        # Skip dependencies with empty names
-                        if ([string]::IsNullOrWhiteSpace($dependency.Name)) {
-                            Write-WarningMessage "Skipping dependency with empty name"
-                            continue
-                        }
-
-                        Write-InfoMessage "Uninstalling dependent app: $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version)"
-
-                        $depUninstallSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
-                            try {
-                                # First try to uninstall from tenant
-                                Uninstall-BcContainerApp `
-                                    -containerName $ContainerName `
-                                    -name $dependency.Name `
-                                    -publisher $dependency.Publisher `
-                                    -version $dependency.Version `
-                                    -force `
-                                    -ErrorAction SilentlyContinue
-                            }
-                            catch {
-                                Write-WarningMessage "Failed to uninstall dependent app from tenant: $_"
-                            }
-
-                            # Then unpublish
-                            Unpublish-BcContainerApp `
-                                -containerName $ContainerName `
-                                -name $dependency.Name `
-                                -publisher $dependency.Publisher `
-                                -version $dependency.Version `
-                                -force `
-                                -ErrorAction SilentlyContinue
-                            return $true
-                        } -ErrorMessage "Failed to uninstall dependent app" -ContinueOnError
-
-                        if (-not $depUninstallSuccess) {
-                            Write-WarningMessage "Failed to uninstall dependent app: $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version)"
-                        }
-                    }
-                }
-
-                # Now uninstall all versions of the app
-                $uninstallSuccess = $true
-
-                if ($allVersionsOfApp -and $allVersionsOfApp.Count -gt 0) {
-                    foreach ($versionedApp in $allVersionsOfApp) {
-                        Write-InfoMessage "Uninstalling app version: $($versionedApp.Version)"
-
-                        $versionUninstallSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
-                            # First try to uninstall the app from the tenant
-                            try {
-                                Write-InfoMessage "First uninstalling app from tenant..."
-                                Uninstall-BcContainerApp `
-                                    -containerName $ContainerName `
-                                    -name $appInfo.Name `
-                                    -publisher $appInfo.Publisher `
-                                    -version $versionedApp.Version `
-                                    -force `
-                                    -doNotSaveData `
-                                    -ErrorAction SilentlyContinue
-                            }
-                            catch {
-                                Write-WarningMessage "Failed to uninstall app from tenant: $_"
-                                # Continue anyway - we'll try to unpublish
-                            }
-
-                            # Then try to unpublish the app
-                            try {
-                                Unpublish-BcContainerApp `
-                                    -containerName $ContainerName `
-                                    -name $appInfo.Name `
-                                    -publisher $appInfo.Publisher `
-                                    -version $versionedApp.Version `
-                                    -force `
-                                    -ErrorAction SilentlyContinue
-                            }
-                            catch {
-                                Write-WarningMessage "Failed to unpublish app: $_"
-                                # Continue anyway - we'll try to publish the new version
-                            }
-
-                            return $true
-                        } -ErrorMessage "Failed to uninstall app version $($versionedApp.Version)" -ContinueOnError
-
-                        if (-not $versionUninstallSuccess) {
-                            Write-WarningMessage "Failed to uninstall app version $($versionedApp.Version)"
-                            $uninstallSuccess = $false
-                        }
-                    }
-                } else {
-                    # Fallback to uninstalling the version we're trying to install
-                    $uninstallSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
-                        # First try to uninstall the app from the tenant
-                        try {
-                            Write-InfoMessage "First uninstalling app from tenant..."
-                            Uninstall-BcContainerApp `
-                                -containerName $ContainerName `
-                                -name $appInfo.Name `
-                                -publisher $appInfo.Publisher `
-                                -version $appInfo.Version `
-                                -force `
-                                -doNotSaveData `
-                                -ErrorAction SilentlyContinue
-                        }
-                        catch {
-                            Write-WarningMessage "Failed to uninstall app from tenant: $_"
-                            # Continue anyway - we'll try to unpublish
-                        }
-
-                        # Then try to unpublish the app
-                        try {
-                            Unpublish-BcContainerApp `
-                                -containerName $ContainerName `
-                                -name $appInfo.Name `
-                                -publisher $appInfo.Publisher `
-                                -version $appInfo.Version `
-                                -force `
-                                -ErrorAction SilentlyContinue
-                        }
-                        catch {
-                            Write-WarningMessage "Failed to unpublish app: $_"
-                            # Continue anyway - we'll try to publish the new version
-                        }
-
-                        return $true
-                    } -ErrorMessage "Failed to uninstall existing app" -ContinueOnError
-                }
-
-                if ($uninstallSuccess) {
-                    Write-InfoMessage "Successfully uninstalled existing app."
-                } else {
-                    Write-WarningMessage "Failed to uninstall existing app. Will attempt to publish anyway."
-                }
-            }
         }
 
-        # Publish the app to the container with error handling
-        Write-InfoMessage "Publishing app to container..."
+        # Publish the app to the container using simplified single-command approach
+        Write-InfoMessage "Publishing app to container using single command with automatic replacement..."
 
         $publishSuccess = Invoke-ScriptWithErrorHandling -ScriptBlock {
-            # Use minimal parameters for better compatibility
-            try {
-                # First try to publish with sync and install
-                $publishResult = Publish-BcContainerApp `
-                    -containerName $ContainerName `
-                    -appFile $resolvedAppPath `
-                    -skipVerification:$true `
-                    -sync `
-                    -install `
-                    -syncMode ForceSync `
-                    -scope Tenant
-
-                return $publishResult
+            # Create default credentials for container authentication
+            $defaultPasswordString = if ($Config.TestSettings.DefaultPassword) {
+                $Config.TestSettings.DefaultPassword
+            } else {
+                "P@ssw0rd"
             }
-            catch {
-                Write-WarningMessage "Failed to publish app with sync and install: $_"
+            # Required for BC container authentication
+            # PSScriptAnalyzer suppression: This is required for BC container authentication
+            # SuppressMessage: PSAvoidUsingConvertToSecureStringWithPlainText - Required for BC container authentication
+            $defaultPassword = ConvertTo-SecureString $defaultPasswordString -AsPlainText -Force
+            $credential = New-Object System.Management.Automation.PSCredential("admin", $defaultPassword)
 
-                # Try publishing without sync and install first
-                Write-InfoMessage "Trying to publish without sync and install..."
-                $publishResult = Publish-BcContainerApp `
-                    -containerName $ContainerName `
-                    -appFile $resolvedAppPath `
-                    -skipVerification:$true
+            # Use single Publish-BcContainerApp command with replacePackageId for automatic replacement
+            $publishResult = Publish-BcContainerApp `
+                -containerName $ContainerName `
+                -appFile $resolvedAppPath `
+                -credential $credential `
+                -skipVerification:$true `
+                -sync `
+                -install `
+                -syncMode $Config.Publishing.SyncMode `
+                -scope $Config.Publishing.Scope `
+                -useDevEndpoint `
+                -replacePackageId
 
-                # Then try to sync separately
-                Write-InfoMessage "Trying to sync app..."
-                Sync-BcContainerApp `
-                    -containerName $ContainerName `
-                    -appName $appInfo.Name `
-                    -appPublisher $appInfo.Publisher `
-                    -appVersion $appInfo.Version `
-                    -mode ForceSync `
-                    -ErrorAction SilentlyContinue
-
-                # Then try to install separately
-                Write-InfoMessage "Trying to install app..."
-                Install-BcContainerApp `
-                    -containerName $ContainerName `
-                    -appName $appInfo.Name `
-                    -appPublisher $appInfo.Publisher `
-                    -appVersion $appInfo.Version `
-                    -ErrorAction SilentlyContinue
-
-                return $publishResult
-            }
+            return $publishResult
         } -ErrorMessage "Failed to publish app to container"
 
         if ($publishSuccess -ne $false) {
-            # Get app information
-            $appInfo = Invoke-ScriptWithErrorHandling -ScriptBlock {
-                $appInfo = Get-BcContainerAppInfo -containerName $ContainerName -tenant default -tenantSpecificProperties
-                # Since we don't have the AppId from the publish operation, get the most recently published app
-                return $appInfo | Sort-Object -Property "PublishedAs" -Descending | Select-Object -First 1
-            } -ErrorMessage "Failed to get app information" -ContinueOnError
+            # Get updated app information after successful deployment
+            $deployedAppInfo = Invoke-ScriptWithErrorHandling -ScriptBlock {
+                $allApps = Get-BcContainerAppInfo -containerName $ContainerName -tenant default -tenantSpecificProperties
+
+                # If we have app info from the file, find the matching deployed app
+                if ($appInfo) {
+                    $matchingApp = $allApps | Where-Object {
+                        $_.Name -eq $appInfo.Name -and
+                        $_.Publisher -eq $appInfo.Publisher -and
+                        $_.Version -eq $appInfo.Version
+                    } | Select-Object -First 1
+
+                    if ($matchingApp) {
+                        return $matchingApp
+                    }
+                }
+
+                # Fallback: return the most recently published app
+                return $allApps | Sort-Object -Property "PublishedAs" -Descending | Select-Object -First 1
+            } -ErrorMessage "Failed to get deployed app information" -ContinueOnError
 
             $result.Success = $true
             $result.Message = "Successfully deployed $AppType app to container '$ContainerName'."
-            $result.AppInfo = $appInfo
+            $result.AppInfo = $deployedAppInfo
 
             Write-SuccessMessage $result.Message
         } else {

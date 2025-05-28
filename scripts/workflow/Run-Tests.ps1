@@ -3,7 +3,7 @@
     Runs tests in a Business Central container.
 .DESCRIPTION
     This script runs tests in a Business Central container by:
-    1. Taking parameters for container name, test codeunit ID/name, and result file path with defaults from configuration
+    1. Taking parameters for container name, test codeunit ID/name with defaults from configuration
     2. Verifying the container exists and is running using structured Docker output formats
     3. Using BcContainerHelper to run the specified tests in the container with proper error handling
     4. Applying test settings from the configuration (timeout, fail behavior)
@@ -29,8 +29,6 @@
     A BC-compatible filter string to use for loading test codeunits (similar to -extensionId).
     If you set this parameter to '*', all test codeunits will be loaded.
     This parameter is optional and works independently of other test parameters.
-.PARAMETER ResultFile
-    Path to the file where test results will be saved. Default is from configuration.
 .PARAMETER Detailed
     Include this switch to output success/failure information for all tests.
 .PARAMETER FailFast
@@ -53,8 +51,8 @@
     .\scripts\Run-Tests.ps1 -TestCodeunitRange "*"
     # Loads all test codeunits using the testCodeunitRange parameter
 .EXAMPLE
-    .\scripts\Run-Tests.ps1 -ResultFile ".\build\testresults\CustomResults.xml" -Detailed
-    # Runs all tests and saves detailed results to the specified file
+    .\scripts\Run-Tests.ps1 -Detailed
+    # Runs all tests with detailed console output
 .NOTES
     This script is part of the Business Central TDD workflow.
 
@@ -87,9 +85,6 @@ param(
     [string]$TestCodeunitRange = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$ResultFile,
-
-    [Parameter(Mandatory = $false)]
     [switch]$Detailed,
 
     [Parameter(Mandatory = $false)]
@@ -119,123 +114,7 @@ if (Test-Path -Path $commonFunctionsPath) {
     exit 1
 }
 
-# Function to generate test results XML as a fallback when container results are not available
-function GenerateTestResultsXml {
-    <#
-    .SYNOPSIS
-        Generates an XML file with test results.
-    .DESCRIPTION
-        Creates an XML file in XUnit format with test results.
-    .PARAMETER Tests
-        Array of test result objects.
-    .PARAMETER TotalTests
-        Total number of tests.
-    .PARAMETER PassedTests
-        Number of passed tests.
-    .PARAMETER FailedTests
-        Number of failed tests.
-    .PARAMETER SkippedTests
-        Number of skipped tests.
-    .PARAMETER ResultFile
-        Path to the file where test results will be saved.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [array]$Tests,
 
-        [Parameter(Mandatory = $true)]
-        [int]$TotalTests,
-
-        [Parameter(Mandatory = $true)]
-        [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
-        [int]$PassedTests,
-
-        [Parameter(Mandatory = $true)]
-        [int]$FailedTests,
-
-        [Parameter(Mandatory = $true)]
-        [int]$SkippedTests,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ResultFile
-    )
-
-    # Create a simple XML structure for the test results
-    $xmlDoc = New-Object System.Xml.XmlDocument
-    $xmlRoot = $xmlDoc.CreateElement("testsuites")
-    $xmlDoc.AppendChild($xmlRoot) | Out-Null
-
-    # Group tests by codeunit
-    $testsByCodeunit = $Tests | Group-Object -Property TestCodeunit
-
-    foreach ($codeunitGroup in $testsByCodeunit) {
-        $codeunitName = $codeunitGroup.Name
-        $codeunitTests = $codeunitGroup.Group
-
-        # Create a testsuite for each codeunit
-        $xmlTestSuite = $xmlDoc.CreateElement("testsuite")
-        $xmlTestSuite.SetAttribute("name", $codeunitName)
-        $xmlTestSuite.SetAttribute("tests", $codeunitTests.Count)
-        $xmlTestSuite.SetAttribute("failures", ($codeunitTests | Where-Object { $_.Result -eq "Failure" }).Count)
-        $xmlTestSuite.SetAttribute("skipped", ($codeunitTests | Where-Object { $_.Result -eq "Skipped" }).Count)
-        $xmlRoot.AppendChild($xmlTestSuite) | Out-Null
-
-        # Add test cases for this codeunit
-        foreach ($test in $codeunitTests) {
-            $xmlTestCase = $xmlDoc.CreateElement("testcase")
-            $xmlTestCase.SetAttribute("name", $test.TestFunction)
-            $xmlTestCase.SetAttribute("classname", $test.TestCodeunit)
-
-            # Add codeunit ID if available
-            if ($test.PSObject.Properties.Name -contains "TestCodeunitId") {
-                $xmlTestCase.SetAttribute("codeunitId", $test.TestCodeunitId)
-            }
-
-            if ($test.Result -eq "Failure") {
-                $xmlFailure = $xmlDoc.CreateElement("failure")
-                $xmlFailure.SetAttribute("message", $test.ErrorMessage)
-                $xmlTestCase.AppendChild($xmlFailure) | Out-Null
-            } elseif ($test.Result -eq "Skipped") {
-                $xmlSkipped = $xmlDoc.CreateElement("skipped")
-                $xmlTestCase.AppendChild($xmlSkipped) | Out-Null
-            }
-
-            $xmlTestSuite.AppendChild($xmlTestCase) | Out-Null
-        }
-    }
-
-    # If no test suites were created, create a default one
-    if ($xmlRoot.ChildNodes.Count -eq 0) {
-        $xmlTestSuite = $xmlDoc.CreateElement("testsuite")
-        $xmlTestSuite.SetAttribute("name", "Business Central Tests")
-        $xmlTestSuite.SetAttribute("tests", $TotalTests)
-        $xmlTestSuite.SetAttribute("failures", $FailedTests)
-        $xmlTestSuite.SetAttribute("skipped", $SkippedTests)
-        $xmlRoot.AppendChild($xmlTestSuite) | Out-Null
-
-        foreach ($test in $Tests) {
-            $xmlTestCase = $xmlDoc.CreateElement("testcase")
-            $xmlTestCase.SetAttribute("name", $test.TestFunction)
-            $xmlTestCase.SetAttribute("classname", $test.TestCodeunit)
-
-            if ($test.Result -eq "Failure") {
-                $xmlFailure = $xmlDoc.CreateElement("failure")
-                $xmlFailure.SetAttribute("message", $test.ErrorMessage)
-                $xmlTestCase.AppendChild($xmlFailure) | Out-Null
-            } elseif ($test.Result -eq "Skipped") {
-                $xmlSkipped = $xmlDoc.CreateElement("skipped")
-                $xmlTestCase.AppendChild($xmlSkipped) | Out-Null
-            }
-
-            $xmlTestSuite.AppendChild($xmlTestCase) | Out-Null
-        }
-    }
-
-    # Save the XML document
-    $xmlDoc.Save($ResultFile)
-    Write-InfoMessage "Test results saved to: $ResultFile"
-}
 
 # Set error handling preferences
 $ErrorActionPreference = 'Stop'
@@ -359,8 +238,6 @@ function Invoke-RunTest {
         Extension ID to run tests for.
     .PARAMETER TestCodeunitRange
         A BC-compatible filter string to use for loading test codeunits.
-    .PARAMETER ResultFile
-        Path to the file where test results will be saved.
     .PARAMETER Detailed
         Whether to output detailed test results.
     .PARAMETER FailFast
@@ -392,9 +269,6 @@ function Invoke-RunTest {
         [string]$TestCodeunitRange = "",
 
         [Parameter(Mandatory = $false)]
-        [string]$ResultFile,
-
-        [Parameter(Mandatory = $false)]
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
         [switch]$Detailed,
 
@@ -413,7 +287,6 @@ function Invoke-RunTest {
         TestCodeunit = $null
         TestFunction = $null
         ExtensionId = $null
-        ResultFile = $null
         TestsPassed = 0
         TestsFailed = 0
         TestsSkipped = 0
@@ -435,35 +308,7 @@ function Invoke-RunTest {
         $result.TestFunction = $TestFunction
         # ExtensionId will be set after resolution logic
 
-        # Validate result file path
-        if ([string]::IsNullOrWhiteSpace($ResultFile)) {
-            $testResultsDir = Resolve-TDDPath -Path $Config.OutputPaths.TestResults -CreateIfNotExists
-            $ResultFile = Join-Path -Path $testResultsDir -ChildPath "TestResults.xml"
-        }
-        $result.ResultFile = $ResultFile
 
-        # Ensure result directory exists
-        $resultDir = Split-Path -Path $ResultFile -Parent
-        if (-not (Test-Path -Path $resultDir)) {
-            New-Item -Path $resultDir -ItemType Directory -Force | Out-Null
-        }
-
-        # For BC containers, we need to use a path inside the container for test results
-        # and then copy the results back to the host after the tests are run
-        # We'll create a directory for test results in the container
-
-        # First, ensure the directory exists in the container
-        try {
-            Invoke-ScriptInBcContainer -containerName $ContainerName -scriptblock {
-                if (-not (Test-Path -Path "c:\bcartifacts\testresults")) {
-                    New-Item -Path "c:\bcartifacts\testresults" -ItemType Directory -Force | Out-Null
-                }
-            }
-            Write-InfoMessage "Created test results directory in container."
-        }
-        catch {
-            Write-WarningMessage "Failed to create test results directory in container: $_"
-        }
 
         # Verify Docker is running
         if (-not (Test-DockerRunning)) {
@@ -505,28 +350,6 @@ function Invoke-RunTest {
             testFunction = $TestFunction
             returnTrueIfAllPassed = $true
             detailed = $true  # Always use detailed output for better diagnostics
-        }
-
-        # Use the host path directly for XUnitResultFileName
-        if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
-            # The XUnitResultFileName parameter expects a path on the host machine
-            # BcContainerHelper will generate the XML file on the host after running tests
-            $testParams['XUnitResultFileName'] = $ResultFile
-
-            # Ensure the directory exists
-            $resultDir = Split-Path -Path $ResultFile -Parent
-            if (-not (Test-Path -Path $resultDir)) {
-                New-Item -Path $resultDir -ItemType Directory -Force | Out-Null
-                Write-InfoMessage "Created test results directory: $resultDir"
-            }
-
-            # If the file exists, delete it to ensure we get fresh results
-            if (Test-Path -Path $ResultFile) {
-                Remove-Item -Path $ResultFile -Force
-                Write-InfoMessage "Removed existing test results file: $ResultFile"
-            }
-
-            Write-InfoMessage "Results will be saved to: $ResultFile"
         }
 
         # Add credentials if specified or create default credentials
@@ -637,17 +460,37 @@ function Invoke-RunTest {
 
         # Run tests with error handling
         Write-InfoMessage "Running tests in container '$ContainerName'..."
-        Write-InfoMessage "Results will be saved to: $ResultFile"
 
         $startTime = Get-Date
 
         # Run the tests and capture the output
         Write-InfoMessage "Running tests in container '$ContainerName'..."
 
-        # Run the tests
-        $testOutput = Invoke-ScriptWithErrorHandling -ScriptBlock {
-            Run-TestsInBcContainer @testParams
-        } -ErrorMessage "Failed to run tests in container"
+        # Run the tests and capture all output including console streams
+        $transcriptPath = Join-Path -Path $env:TEMP -ChildPath "BCTestOutput_$(Get-Random).txt"
+        
+        try {
+            Start-Transcript -Path $transcriptPath -Force | Out-Null
+            
+            $testOutput = Invoke-ScriptWithErrorHandling -ScriptBlock {
+                Run-TestsInBcContainer @testParams
+            } -ErrorMessage "Failed to run tests in container"
+            
+            Stop-Transcript | Out-Null
+            
+            # Read the transcript to get the full output
+            if (Test-Path $transcriptPath) {
+                $fullOutput = Get-Content -Path $transcriptPath -Raw
+            } else {
+                $fullOutput = ""
+            }
+        }
+        finally {
+            # Clean up transcript
+            if (Test-Path $transcriptPath) {
+                Remove-Item -Path $transcriptPath -Force -ErrorAction SilentlyContinue
+            }
+        }
 
         $endTime = Get-Date
         $duration = $endTime - $startTime
@@ -666,14 +509,15 @@ function Invoke-RunTest {
             $skippedTests = 0
 
             # Parse the test output to extract test results
-            if ($testOutput) {
+            # Use the full transcript output which contains the detailed test results
+            if ($fullOutput -and $fullOutput.Length -gt 0) {
                 Write-InfoMessage "Parsing test output for results..."
 
-                # Create a regex pattern to extract test information from the output
-                $testOutputLines = $testOutput.ToString() -split "`r?`n"
+                $testOutputLines = $fullOutput -split "`r?`n"
+                
                 $testResults = @()
 
-                # Pattern for codeunit line: "  Codeunit 50000 HelloWorld Test Failure (0.271 seconds)"
+                # Pattern for codeunit line: "  Codeunit 50000 HelloWorld Test Success (0.271 seconds)"
                 $codeunitPattern = '^\s*Codeunit\s+(\d+)\s+(.*?)\s+(Success|Failure|Skipped)\s+\((.*?)\s+seconds\)'
 
                 # Pattern for test function line: "    Testfunction TestHelloWorldMessage Success (0.157 seconds)"
@@ -684,66 +528,49 @@ function Invoke-RunTest {
 
                 $currentCodeunit = $null
                 $currentCodeunitId = $null
-                $currentFunction = $null
-                $currentResult = $null
-                $currentError = $null
                 $inErrorSection = $false
+                $errorLines = @()
 
                 foreach ($line in $testOutputLines) {
                     # Check for codeunit line
                     if ($line -match $codeunitPattern) {
                         $currentCodeunitId = $matches[1]
                         $currentCodeunit = $matches[2]
-                        # Process any previous function before starting a new codeunit
-                        if ($currentFunction) {
-                            $testResults += [PSCustomObject]@{
-                                TestCodeunit = $currentCodeunit
-                                TestCodeunitId = $currentCodeunitId
-                                TestFunction = $currentFunction
-                                Result = $currentResult
-                                ErrorMessage = $currentError
-                            }
-                            $currentFunction = $null
-                            $currentResult = $null
-                            $currentError = $null
-                        }
                     }
                     # Check for test function line
                     elseif ($line -match $testFunctionPattern) {
-                        # Process any previous function before starting a new one
-                        if ($currentFunction) {
-                            $testResults += [PSCustomObject]@{
-                                TestCodeunit = $currentCodeunit
-                                TestCodeunitId = $currentCodeunitId
-                                TestFunction = $currentFunction
-                                Result = $currentResult
-                                ErrorMessage = $currentError
-                            }
+                        $functionName = $matches[1]
+                        $functionResult = $matches[2]
+                        
+                        # Collect any error message that was being built
+                        $errorMessage = ""
+                        if ($errorLines.Count -gt 0) {
+                            $errorMessage = ($errorLines -join " ").Trim()
+                            $errorLines = @()
                         }
-                        $currentFunction = $matches[1]
-                        $currentResult = $matches[2]
-                        $currentError = $null
+                        
+                        $testResults += [PSCustomObject]@{
+                            TestCodeunit = $currentCodeunit
+                            TestCodeunitId = $currentCodeunitId
+                            TestFunction = $functionName
+                            Result = $functionResult
+                            ErrorMessage = $errorMessage
+                        }
+                        
                         $inErrorSection = $false
                     }
                     # Check for error section
                     elseif ($line -match $errorPattern) {
                         $inErrorSection = $true
-                        $currentError = ""
+                        $errorLines = @()
                     }
-                    # Collect error message
-                    elseif ($inErrorSection -and $line.Trim() -ne "") {
-                        $currentError += $line.Trim() + " "
+                    # Collect error message lines
+                    elseif ($inErrorSection -and $line.Trim() -ne "" -and $line.Trim() -notmatch "Call Stack:") {
+                        $errorLines += $line.Trim()
                     }
-                }
-
-                # Add the last test function if there is one
-                if ($currentFunction) {
-                    $testResults += [PSCustomObject]@{
-                        TestCodeunit = $currentCodeunit
-                        TestCodeunitId = $currentCodeunitId
-                        TestFunction = $currentFunction
-                        Result = $currentResult
-                        ErrorMessage = $currentError
+                    # Stop collecting error when we hit Call Stack or empty line
+                    elseif ($inErrorSection -and ($line.Trim() -eq "" -or $line.Trim() -match "Call Stack:")) {
+                        $inErrorSection = $false
                     }
                 }
 
@@ -753,55 +580,72 @@ function Invoke-RunTest {
                     Write-InfoMessage "Parsed $($tests.Count) test function(s) from output."
 
                     $totalTests = $tests.Count
-                    $passedTests = ($tests | Where-Object { $_.Result -eq "Success" }).Count
-                    $failedTests = ($tests | Where-Object { $_.Result -eq "Failure" }).Count
-                    $skippedTests = ($tests | Where-Object { $_.Result -eq "Skipped" }).Count
+                    $passedTests = 0
+                    $failedTests = 0
+                    $skippedTests = 0
+                    
+                    # Count results manually to avoid Where-Object issues
+                    foreach ($test in $tests) {
+                        switch ($test.Result) {
+                            "Success" { $passedTests++ }
+                            "Failure" { $failedTests++ }
+                            "Skipped" { $skippedTests++ }
+                        }
+                    }
+                    
+
                 } else {
-                    # If no test details were parsed but the test output indicates success,
-                    # we'll create a synthetic test result based on the output
-                    if ($testOutput -eq $true) {
-                        Write-InfoMessage "No detailed test results parsed, but tests were run successfully."
-                        $totalTests = 1
-                        $passedTests = 1
+                    # If no test details were parsed, try to extract basic counts from the output
+                    Write-WarningMessage "Failed to parse detailed test results from output. Attempting basic parsing..."
+                    
+                    # Try to count test functions in the output as a fallback
+                    $testFunctionLines = $testOutputLines | Where-Object { $_ -match '^\s*Testfunction\s+.*\s+(Success|Failure|Skipped)\s+\(' }
+                    
+                    if ($testFunctionLines.Count -gt 0) {
+                        $totalTests = $testFunctionLines.Count
+                        $passedTests = 0
                         $failedTests = 0
                         $skippedTests = 0
-
-                        # Create a synthetic test result
-                        $tests = @(
-                            [PSCustomObject]@{
-                                TestCodeunit = $TestCodeunit
-                                TestFunction = "Unknown"
-                                Result = "Success"
-                                ErrorMessage = ""
-                            }
-                        )
+                        
+                        # Count results manually to avoid Where-Object issues
+                        foreach ($line in $testFunctionLines) {
+                            if ($line -match '\s+Success\s+\(') { $passedTests++ }
+                            elseif ($line -match '\s+Failure\s+\(') { $failedTests++ }
+                            elseif ($line -match '\s+Skipped\s+\(') { $skippedTests++ }
+                        }
+                        
+                        Write-InfoMessage "Parsed $totalTests test functions: $passedTests passed, $failedTests failed, $skippedTests skipped"
+                        $tests = @() # Empty array since we couldn't parse details
                     } else {
+                        # Complete fallback - no test information could be extracted
+                        Write-WarningMessage "Could not extract any test information from output."
                         $totalTests = 0
                         $passedTests = 0
                         $failedTests = 0
                         $skippedTests = 0
+                        $tests = @()
                     }
                 }
-            }
-
-            # Update test counts from XML file if available
-            if (-not [string]::IsNullOrWhiteSpace($ResultFile) -and (Test-Path -Path $ResultFile)) {
-                try {
-                    [xml]$xmlContent = Get-Content -Path $ResultFile -Raw
-                    $totalCount = [int]$xmlContent.assemblies.assembly.total
-                    $failedCount = [int]$xmlContent.assemblies.assembly.failed
-                    $skippedCount = [int]$xmlContent.assemblies.assembly.skipped
-                    $passedCount = [int]$xmlContent.assemblies.assembly.passed
-
-                    # Update the test counts based on the XML file
-                    $totalTests = $totalCount
-                    $failedTests = $failedCount
-                    $passedTests = $passedCount
-                    $skippedTests = $skippedCount
-                } catch {
-                    Write-WarningMessage "Failed to parse test results XML for summary: $_"
+            } else {
+                # No transcript output available, fall back to basic boolean result
+                Write-WarningMessage "No transcript output available for parsing."
+                if ($testOutput -eq $true) {
+                    Write-InfoMessage "Test execution returned success, but no detailed results available."
+                    $totalTests = 1
+                    $passedTests = 1
+                    $failedTests = 0
+                    $skippedTests = 0
+                    $tests = @()
+                } else {
+                    $totalTests = 0
+                    $passedTests = 0
+                    $failedTests = 0
+                    $skippedTests = 0
+                    $tests = @()
                 }
             }
+
+
 
             $result.TotalTests = $totalTests
             $result.TestsPassed = $passedTests
@@ -815,7 +659,7 @@ function Invoke-RunTest {
             Write-InfoMessage "Total tests: $totalTests"
             Write-InfoMessage "Passed: $passedTests"
             if ($failedTests -gt 0) {
-                Write-ErrorMessage "Failed: $failedTests" "Some tests failed."
+                Write-ErrorMessage "Failed: $failedTests"
             } else {
                 Write-SuccessMessage "Failed: $failedTests"
             }
@@ -833,52 +677,16 @@ function Invoke-RunTest {
 
             # Set success based on test results
             if ($result.AllTestsPassed) {
+                $result.Success = $true
                 $result.Message = "All tests passed successfully."
                 Write-SuccessMessage "All tests passed successfully."
             } else {
+                $result.Success = $false
                 $result.Message = "Some tests failed."
                 Write-ErrorMessage "Some tests failed. Check the test results for details."
             }
 
-            # Check if test results file was created
-            if (-not [string]::IsNullOrWhiteSpace($ResultFile) -and (Test-Path -Path $ResultFile)) {
-                # Verify the file has content
-                $fileContent = Get-Content -Path $ResultFile -Raw
-                if ([string]::IsNullOrWhiteSpace($fileContent)) {
-                    Write-WarningMessage "Test results file is empty. Generating minimal XML structure..."
-                    # Create a minimal XML structure for empty test results
-                    $xmlContent = @"
-<?xml version="1.0" encoding="UTF-8"?>
-<assemblies />
-"@
-                    Set-Content -Path $ResultFile -Value $xmlContent
-                    Write-InfoMessage "Created minimal test results XML at: $ResultFile"
-                } elseif ($fileContent -match "<assemblies\s*/>") {
-                    Write-WarningMessage "Test results file contains empty assemblies tag. This indicates no tests were found or run."
-                    Write-InfoMessage "Test results saved to: $ResultFile"
-                } else {
-                    Write-InfoMessage "Test results saved to: $ResultFile"
-                }
-            } elseif (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
-                Write-WarningMessage "Test results file not created. Generating minimal XML structure..."
-                # Create a minimal XML structure for empty test results
-                $xmlContent = @"
-<?xml version="1.0" encoding="UTF-8"?>
-<assemblies />
-"@
-                try {
-                    # Ensure the directory exists
-                    $resultDir = Split-Path -Path $ResultFile -Parent
-                    if (-not (Test-Path -Path $resultDir)) {
-                        New-Item -Path $resultDir -ItemType Directory -Force | Out-Null
-                    }
 
-                    Set-Content -Path $ResultFile -Value $xmlContent
-                    Write-InfoMessage "Created minimal test results XML at: $ResultFile"
-                } catch {
-                    Write-ErrorMessage "Failed to generate test results XML: $_"
-                }
-            }
         } catch {
             Write-WarningMessage "Failed to parse test results: $_"
             $result.Success = $testOutput
@@ -896,10 +704,7 @@ function Invoke-RunTest {
 }
 
 # Execute the test run with error handling
-$testResult = Invoke-RunTest -Config $config -ContainerName $ContainerName -TestCodeunit $TestCodeunit -TestFunction $TestFunction -ExtensionId $ExtensionId -TestCodeunitRange $TestCodeunitRange -ResultFile $ResultFile -Detailed:$Detailed -FailFast:$FailFast -Timeout $Timeout
+$testResult = Invoke-RunTest -Config $config -ContainerName $ContainerName -TestCodeunit $TestCodeunit -TestFunction $TestFunction -ExtensionId $ExtensionId -TestCodeunitRange $TestCodeunitRange -Detailed:$Detailed -FailFast:$FailFast -Timeout $Timeout
 
-# Set the exit code for the script
-if (-not $testResult.Success) {
-    # Exit with non-zero code to indicate failure when used in scripts
-    exit 1
-}
+# Return the test result object
+return $testResult

@@ -178,7 +178,6 @@ function Test-ParameterDefinitions {
             'TestFunction',
             'ExtensionId',
             'TestCodeunitRange',
-            'ResultFile',
             'Detailed',
             'FailFast',
             'Timeout',

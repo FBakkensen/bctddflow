@@ -52,28 +52,29 @@ $VerbosePreference     = 'Continue'
 $InformationPreference = 'Continue'
 $WarningPreference     = 'Continue'
 
-# Get the script directory
-$scriptPath = $MyInvocation.MyCommand.Path
-if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-    # Fallback if $MyInvocation.MyCommand.Path is empty
-    $scriptPath = $PSCommandPath
+# Import Common-Functions.ps1 first to access centralized project root function
+$scriptDir = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+    Write-Error "Unable to determine script directory. PSScriptRoot is not available. This script must be run as a file, not in an interactive session."
+    exit 1
 }
 
-if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-    # Hard-coded fallback if both are empty
-    $scriptDir = "d:\repos\bctddflow\scripts"
-    Write-Warning "Using hard-coded script directory: $scriptDir"
-} else {
-    $scriptDir = Split-Path -Parent $scriptPath
-}
-
-# Import Common-Functions.ps1
 $commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "lib\Common-Functions.ps1"
 if (-not (Test-Path -Path $commonFunctionsPath)) {
     Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the lib folder."
     exit 1
 }
 . $commonFunctionsPath
+
+# Initialize project root using centralized function
+$projectInfo = Initialize-TDDProjectRoot -ScriptRoot $scriptDir
+if (-not $projectInfo.ValidationPassed) {
+    exit 1
+}
+
+# Extract values for backward compatibility
+$projectRoot = $projectInfo.ProjectRoot
+$scriptDir = $projectInfo.ScriptDir
 
 # Import Get-TDDConfiguration.ps1
 $getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "lib\Get-TDDConfiguration.ps1"
@@ -756,28 +757,13 @@ function View-TestResults {
             }
         }
 
-        $viewResultsPath = Join-Path -Path $scriptDir -ChildPath "workflow\View-TestResults.ps1"
-        if (-not (Test-Path -Path $viewResultsPath)) {
-            throw "View-TestResults.ps1 not found at path: $viewResultsPath"
-        }
-
-        $viewResultsParams = @{
-            ShowPassed = $config.TDDSession.ShowPassedTests
-        }
-
-        if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
-            $viewResultsParams['ConfigPath'] = $ConfigPath
-        }
-
-        $viewResultsResult = & $viewResultsPath @viewResultsParams
-
-        if (-not $viewResultsResult) {
-            throw "Failed to view test results. Please check the error messages and try again."
-        }
-
+        # Test results are now displayed directly by Run-Tests.ps1
+        # No separate View-TestResults.ps1 script is needed since file output was removed
+        Write-InfoMessage "Test results are displayed during test execution."
+        Write-InfoMessage "Use 'Run-AllTests' or 'Run-SpecificTest' to see current test results."
+        
         $result.Success = $true
-        $result.Message = "Test results displayed successfully."
-        $result.Data = $viewResultsResult
+        $result.Message = "Test results are displayed during test execution. No separate viewing needed."
 
         Write-SuccessMessage $result.Message
     }

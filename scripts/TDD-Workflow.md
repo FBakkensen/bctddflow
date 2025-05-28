@@ -212,21 +212,17 @@ All environment checks passed! The environment is ready for Business Central TDD
 .\scripts\workflow\Run-Tests.ps1 -TestCodeunit "HelloWorld Test" -TestCodeunitRange "*"
 ```
 
-### View-TestResults.ps1
+### Test Results Display
 
-**Purpose**: Displays test results in a readable format.
+**Purpose**: Test results are displayed directly during test execution.
 
-**Location**: `scripts\workflow\View-TestResults.ps1`
+**Implementation**: Test results are shown in real-time by `Run-Tests.ps1` during execution, eliminating the need for separate result viewing scripts.
 
-**Parameters**:
-- `ResultFile`: Path to the test results file (default: from config)
-- `ShowPassed`: Whether to show passed tests (default: from config)
-- `ConfigPath`: Path to the configuration file (optional)
-
-**Usage**:
-```powershell
-.\scripts\workflow\View-TestResults.ps1
-```
+**Features**:
+- Real-time console output during test execution
+- Comprehensive test summaries with pass/fail counts
+- Detailed error information for failed tests
+- Duration and performance metrics
 
 ## Complete Workflow Scripts
 

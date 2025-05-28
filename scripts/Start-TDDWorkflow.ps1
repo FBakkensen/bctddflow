@@ -152,28 +152,28 @@ $VerbosePreference     = 'Continue'
 $InformationPreference = 'Continue'
 $WarningPreference     = 'Continue'
 
-# Get the script directory
-$scriptPath = $MyInvocation.MyCommand.Path
-if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-    # Fallback if $MyInvocation.MyCommand.Path is empty
-    $scriptPath = $PSCommandPath
+# Import Common-Functions.ps1 first to access centralized project root function
+$scriptDir = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+    Write-Error "Unable to determine script directory. PSScriptRoot is not available. This script must be run as a file, not in an interactive session."
+    exit 1
 }
 
-if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-    # Hard-coded fallback if both are empty
-    $scriptDir = "d:\repos\bctddflow\scripts"
-    Write-Warning "Using hard-coded script directory: $scriptDir"
-} else {
-    $scriptDir = Split-Path -Parent $scriptPath
-}
-
-# Import Common-Functions.ps1
 $commonFunctionsPath = Join-Path -Path $scriptDir -ChildPath "lib\Common-Functions.ps1"
 if (-not (Test-Path -Path $commonFunctionsPath)) {
     Write-Error "Common-Functions.ps1 not found at path: $commonFunctionsPath. Make sure the script exists in the lib folder."
     exit 1
 }
 . $commonFunctionsPath
+
+# Initialize project root using centralized function
+$projectInfo = Initialize-TDDProjectRoot -ScriptRoot $scriptDir
+if (-not $projectInfo.ValidationPassed) {
+    exit 1
+}
+
+# Extract values for backward compatibility
+$scriptDir = $projectInfo.ScriptDir
 
 # Import Get-TDDConfiguration.ps1
 $getTDDConfigPath = Join-Path -Path $scriptDir -ChildPath "lib\Get-TDDConfiguration.ps1"
@@ -644,29 +644,26 @@ function Invoke-TDDWorkflow {
         if ($showResults) {
             Write-SectionHeader "Test Results" -ForegroundColor Cyan -DecorationType Underline
 
-            $viewResultsPath = Join-Path -Path $scriptDir -ChildPath "workflow\View-TestResults.ps1"
-            if (-not (Test-Path -Path $viewResultsPath)) {
-                throw "View-TestResults.ps1 not found at path: $viewResultsPath"
+            # Test results are now displayed directly by Run-Tests.ps1
+            # No separate View-TestResults.ps1 script is needed since file output was removed
+            if ($result.Steps.Tests) {
+                Write-InfoMessage "Test results were displayed during test execution."
+                Write-InfoMessage "Summary:"
+                Write-InfoMessage "  Total Tests: $($result.Steps.Tests.TotalTests)"
+                Write-InfoMessage "  Passed: $($result.Steps.Tests.TestsPassed)"
+                Write-InfoMessage "  Failed: $($result.Steps.Tests.TestsFailed)"
+                Write-InfoMessage "  Skipped: $($result.Steps.Tests.TestsSkipped)"
+                
+                if ($result.Steps.Tests.TestsFailed -gt 0) {
+                    Write-WarningMessage "Some tests failed. See detailed output above."
+                } else {
+                    Write-SuccessMessage "All tests passed successfully."
+                }
+                
+                $result.Steps.Results = $result.Steps.Tests
+            } else {
+                Write-InfoMessage "No test results available to display."
             }
-
-            Write-InfoMessage "Displaying test results..."
-            $viewResultsParams = @{}
-
-            if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
-                $viewResultsParams['ConfigPath'] = $ConfigPath
-            }
-
-            if ($ShowPassed) {
-                $viewResultsParams['ShowPassed'] = $true
-            }
-
-            $viewResultsResult = & $viewResultsPath @viewResultsParams
-
-            if (-not $viewResultsResult) {
-                throw "Failed to display test results. Please check the error messages and try again."
-            }
-
-            $result.Steps.Results = $viewResultsResult
         }
 
         # Display workflow summary

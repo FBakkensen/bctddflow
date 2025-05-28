@@ -740,6 +740,166 @@ function Invoke-ScriptWithErrorHandling {
 
 #endregion
 
+#region Project Root Functions
+
+function Initialize-TDDProjectRoot {
+    <#
+    .SYNOPSIS
+        Initializes and validates the TDD project root directory.
+    .DESCRIPTION
+        Centralizes project root detection logic for AL/Business Central TDD PowerShell scripts.
+        Uses $PSScriptRoot for automatic script location detection, navigates to the parent
+        directory (project root) from the scripts folder, validates that the target directory
+        contains the expected app/test folders, and provides clear error messages if validation fails.
+
+        This function integrates with the SourcePaths configuration from TDDConfig.psd1 and
+        ensures robust operation regardless of script execution location.
+    .PARAMETER ScriptRoot
+        The root directory of the calling script. If not provided, attempts to determine
+        automatically using $PSScriptRoot from the calling scope.
+    .PARAMETER RequiredDirectories
+        Array of directory names that must exist in the project root for validation to pass.
+        Default is @('app', 'test', 'scripts').
+    .PARAMETER SetLocation
+        If specified, changes the current working directory to the project root.
+        Default is $true.
+    .PARAMETER RegisterCleanup
+        If specified and SetLocation is $true, registers a cleanup action to restore
+        the original location on script exit. Default is $true.
+    .OUTPUTS
+        PSCustomObject. Returns an object with the following properties:
+        - ProjectRoot: The resolved project root path
+        - ScriptDir: The scripts directory path
+        - OriginalLocation: The original working directory (if SetLocation was used)
+        - ValidationPassed: Boolean indicating if project structure validation passed
+    .EXAMPLE
+        $projectInfo = Initialize-TDDProjectRoot
+        if ($projectInfo.ValidationPassed) {
+            # Project root is valid and current directory is set to project root
+            Write-Host "Project root: $($projectInfo.ProjectRoot)"
+        }
+    .EXAMPLE
+        $projectInfo = Initialize-TDDProjectRoot -SetLocation:$false
+        # Validates project structure but doesn't change current directory
+    .EXAMPLE
+        $projectInfo = Initialize-TDDProjectRoot -RequiredDirectories @('app', 'test', 'scripts', 'build')
+        # Validates project structure with additional required directories
+    .NOTES
+        This function is designed to be called from TDD workflow scripts to centralize
+        project root detection and validation logic. It integrates with the existing
+        SourcePaths configuration in TDDConfig.psd1.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$ScriptRoot,
+
+        [Parameter(Mandatory = $false)]
+        [string[]]$RequiredDirectories = @('app', 'test', 'scripts'),
+
+        [Parameter(Mandatory = $false)]
+        [bool]$SetLocation = $true,
+
+        [Parameter(Mandatory = $false)]
+        [bool]$RegisterCleanup = $true
+    )
+
+    # Initialize result object
+    $result = [PSCustomObject]@{
+        ProjectRoot = $null
+        ScriptDir = $null
+        OriginalLocation = $null
+        ValidationPassed = $false
+    }
+
+    try {
+        # Determine script directory using PSScriptRoot from calling scope if not provided
+        if ([string]::IsNullOrWhiteSpace($ScriptRoot)) {
+            # Get PSScriptRoot from the calling scope (one level up)
+            $ScriptRoot = (Get-Variable -Name 'PSScriptRoot' -Scope 1 -ErrorAction SilentlyContinue).Value
+        }
+
+        if ([string]::IsNullOrWhiteSpace($ScriptRoot)) {
+            Write-ErrorMessage "Unable to determine script directory. PSScriptRoot is not available." "This function must be called from a script file, not in an interactive session."
+            return $result
+        }
+
+        $result.ScriptDir = $ScriptRoot
+
+        # Calculate project root directory (parent of scripts directory)
+        $projectRoot = Split-Path -Parent $ScriptRoot
+        $result.ProjectRoot = $projectRoot
+
+        # Validate project structure
+        Write-Verbose "Validating project structure..."
+        Write-Verbose "  Scripts directory: $ScriptRoot"
+        Write-Verbose "  Project root: $projectRoot"
+
+        $missingDirectories = @()
+
+        foreach ($dir in $RequiredDirectories) {
+            $dirPath = Join-Path -Path $projectRoot -ChildPath $dir
+            if (-not (Test-Path -Path $dirPath -PathType Container)) {
+                $missingDirectories += $dir
+            }
+        }
+
+        if ($missingDirectories.Count -gt 0) {
+            $errorMessage = @"
+Project structure validation failed. The following required directories are missing:
+$($missingDirectories -join ', ')
+
+Expected project structure:
+  $projectRoot/
+  ├── app/          (Main app source directory)
+  ├── test/         (Test app source directory)
+  └── scripts/      (TDD workflow scripts)
+
+Please ensure you are running this script from a valid AL/Business Central TDD project root.
+Current project root: $projectRoot
+"@
+            Write-ErrorMessage $errorMessage
+            return $result
+        }
+
+        # Project structure validation passed
+        $result.ValidationPassed = $true
+
+        # Change to project root directory for consistent relative path handling
+        if ($SetLocation) {
+            $result.OriginalLocation = Get-Location
+            try {
+                Set-Location -Path $projectRoot
+                Write-Verbose "Working directory changed to project root: $projectRoot"
+
+                # Register cleanup to restore original location on script exit
+                if ($RegisterCleanup) {
+                    $originalLocation = $result.OriginalLocation
+                    Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+                        try {
+                            Set-Location -Path $originalLocation -ErrorAction SilentlyContinue
+                        } catch {
+                            # Silently ignore errors during cleanup
+                        }
+                    } | Out-Null
+                }
+            } catch {
+                Write-ErrorMessage "Failed to change working directory to project root: $projectRoot" "Error: $($_.Exception.Message)"
+                return $result
+            }
+        }
+
+        Write-InfoMessage "TDD project root initialized successfully: $projectRoot"
+        return $result
+
+    } catch {
+        Write-ErrorMessage "Failed to initialize TDD project root" "Error: $($_.Exception.Message)"
+        return $result
+    }
+}
+
+#endregion
+
 # Note: Export-ModuleMember is only needed when this file is used as a module
 # When dot-sourced, all functions are automatically available in the calling scope
 if ($MyInvocation.Line -match 'Import-Module') {

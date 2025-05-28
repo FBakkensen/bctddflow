@@ -618,6 +618,23 @@ function Invoke-AlcCompiler {
                 $packageCachePaths = @()
 
                 if ($appType -eq "Test" -and (Test-Path -Path $testAlPackagesPath -PathType Container)) {
+                    # For test app, ensure the compiled main app is available in the package cache
+                    $mainAppOutputPath = Join-Path -Path (Resolve-TDDPath -Path $Config.OutputPaths.AppOutput) -ChildPath "*.app"
+                    $mainAppFiles = Get-ChildItem -Path $mainAppOutputPath -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*9AAdvancedManufacturingProjectBased*" }
+
+                    if ($mainAppFiles) {
+                        $latestMainApp = $mainAppFiles | Sort-Object -Property LastWriteTime -Descending | Select-Object -First 1
+                        $targetPath = Join-Path -Path $testAlPackagesPath -ChildPath $latestMainApp.Name
+
+                        # Copy the compiled main app to test package cache if it doesn't exist or is older
+                        if (-not (Test-Path -Path $targetPath) -or (Get-Item -Path $targetPath).LastWriteTime -lt $latestMainApp.LastWriteTime) {
+                            Write-InfoMessage "Copying compiled main app to test package cache: $($latestMainApp.Name)"
+                            Copy-Item -Path $latestMainApp.FullName -Destination $targetPath -Force
+                        }
+                    } else {
+                        Write-WarningMessage "No compiled main app found in output directory. Test compilation may fail due to missing dependencies."
+                    }
+
                     # For test app, use test\.alpackages first
                     Write-InfoMessage "Using package cache from test directory: $testAlPackagesPath"
                     $packageCachePaths += $testAlPackagesPath
